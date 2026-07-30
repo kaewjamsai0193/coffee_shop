@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useToast } from '../components/Toast.jsx';
 import { usePending } from '../context/PendingContext.jsx';
@@ -254,16 +253,8 @@ const Order = ({ embedded = false }) => {
   // หน้า public แบบเต็มจอ — มีหัวข้อ + ไอคอนลับเข้า admin
   return (
     <div className="min-h-screen bg-foam">
-      <header className="flex items-center justify-between px-6 py-4">
+      <header className="px-6 py-4">
         <h1 className="font-display text-2xl text-grounds">สั่งเครื่องดื่ม</h1>
-        {/* ทางลับ admin — ไอคอนเล็กมุมจอ */}
-        <Link
-          to="/admin"
-          title="สำหรับผู้ดูแล"
-          className="text-grounds/30 transition-colors hover:text-grounds"
-        >
-          ⚙️
-        </Link>
       </header>
       {grid}
     </div>
