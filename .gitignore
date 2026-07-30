@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# env / secrets (ห้ามขึ้น repo)
+.env
+.env.local
+.env.*.local
+
+# build output
+dist/
+build/
+
+# logs
+*.log
+npm-debug.log*
+
+# uploads (รูปเมนูที่อัปโหลด — เก็บโครงโฟลเดอร์ไว้)
+backend/uploads/menu/*
+!backend/uploads/menu/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

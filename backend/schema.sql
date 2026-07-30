@@ -1,0 +1,95 @@
+-- Coffee POS — schema + seed data
+-- รัน: createdb coffee_pos && psql -d coffee_pos -f backend/schema.sql
+
+DROP TABLE IF EXISTS order_items CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS menu_items CASCADE;
+DROP TABLE IF EXISTS admins CASCADE;
+
+-- แอดมิน (สร้างคนแรกด้วย: npm run create-admin)
+CREATE TABLE admins (
+  id            SERIAL PRIMARY KEY,
+  username      TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- เมนู (admin จัดการได้ — ห้ามลบ ใช้ is_available = false เพื่อปิดขาย)
+CREATE TABLE menu_items (
+  id           SERIAL PRIMARY KEY,
+  name         TEXT NOT NULL,
+  price        NUMERIC(8,2) NOT NULL CHECK (price >= 0),
+  category     TEXT NOT NULL CHECK (category IN ('กาแฟสด', 'เย็น', 'ปั่น')),
+  image_url    TEXT,                       -- NULL = ใช้ fallback emoji/สี ตามหมวด
+  is_available BOOLEAN NOT NULL DEFAULT true,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ออเดอร์ (ห้ามลบ — MVP มีแค่ pending/completed)
+CREATE TABLE orders (
+  id           SERIAL PRIMARY KEY,
+  status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'cancelled')),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ
+);
+
+-- รายการในออเดอร์ — snapshot ชื่อ+ราคา ณ เวลาสั่ง (ไม่อ้างอิงราคาปัจจุบันย้อนหลัง)
+CREATE TABLE order_items (
+  id            SERIAL PRIMARY KEY,
+  order_id      INTEGER NOT NULL REFERENCES orders(id),
+  menu_item_id  INTEGER NOT NULL REFERENCES menu_items(id),
+  name_snapshot TEXT NOT NULL,
+  price         NUMERIC(8,2) NOT NULL CHECK (price >= 0),
+  qty           INTEGER NOT NULL CHECK (qty > 0)
+);
+
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_completed_at ON orders(completed_at);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+
+-- code ออเดอร์แบบ ORD-00000123 (คำนวณจาก id ตอน query ในฝั่ง backend)
+
+-- ───────────────────────────── Seed เมนู (จาก Menu.md) ─────────────────────────────
+
+-- กาแฟสด
+INSERT INTO menu_items (name, price, category) VALUES
+  ('เอสเพรสโซ่', 45, 'กาแฟสด'),
+  ('คาปูชิโน่', 50, 'กาแฟสด'),
+  ('ลาเต้', 45, 'กาแฟสด'),
+  ('มอคค่า', 50, 'กาแฟสด'),
+  ('อเมริกาโน่', 40, 'กาแฟสด'),
+  ('อเมริกาโน่ น้ำส้ม', 50, 'กาแฟสด'),
+  ('คาราเมลมัคคิโต้', 50, 'กาแฟสด'),
+  ('มัจฉะลาเต้', 50, 'กาแฟสด');
+
+-- เย็น
+INSERT INTO menu_items (name, price, category) VALUES
+  ('ชาไทย', 30, 'เย็น'),
+  ('ชาเขียว', 35, 'เย็น'),
+  ('น้ำผึ้งมะนาว', 45, 'เย็น'),
+  ('ชามะนาว', 35, 'เย็น'),
+  ('โกโก้นมสด', 35, 'เย็น'),
+  ('นมชมพู', 30, 'เย็น'),
+  ('โกโก้นมสดคาราเมล', 45, 'เย็น'),
+  ('แดงมะนาวโซดา', 35, 'เย็น'),
+  ('แดงโซดา', 30, 'เย็น'),
+  ('น้ำมะนาว', 35, 'เย็น');
+
+-- ปั่น
+INSERT INTO menu_items (name, price, category) VALUES
+  ('สตอเบอรี่ปั่น', 45, 'ปั่น'),
+  ('สตอเบอรี่โยเกิร์ตปั่น', 50, 'ปั่น'),
+  ('สตรอว์เบอร์รีนมสด', 50, 'ปั่น'),
+  ('เอ็ม 100 ปีโป้ปั่น', 35, 'ปั่น'),
+  ('ปังเย็น', 35, 'ปั่น'),
+  ('โกโก้ปั่น', 40, 'ปั่น'),
+  ('กล้วยโกโก้ปั่น', 45, 'ปั่น'),
+  ('แตงโมปั่น', 40, 'ปั่น'),
+  ('มะม่วงปั่น', 45, 'ปั่น'),
+  ('มะม่วงสมูทตี้โยเกิร์ต', 50, 'ปั่น'),
+  ('น้ำมะนาวปั่น', 40, 'ปั่น'),
+  ('เสาวรสปั่น', 40, 'ปั่น'),
+  ('สับปะรดปั่น', 40, 'ปั่น'),
+  ('มะพร้าวปั่น', 40, 'ปั่น'),
+  ('ชาไทยปั่น', 35, 'ปั่น'),
+  ('ชาเขียวปั่น', 40, 'ปั่น');

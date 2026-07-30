@@ -1,0 +1,53 @@
+# Production stack สำหรับ VPS — รันด้วย:
+#   docker compose -f docker-compose.prod.yml up -d --build
+# ค่าลับทั้งหมดมาจากไฟล์ .env (ห้าม commit) — ดู .env.example
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Asia/Bangkok
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # schema + seed โหลดอัตโนมัติเฉพาะตอน init ครั้งแรก (volume ว่าง) — restart ไม่ลบข้อมูล
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # ไม่ expose พอร์ตออก host — เข้าถึงได้เฉพาะภายใน docker network
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      ADMIN_USERNAME: ${ADMIN_USERNAME}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN}
+      TZ: Asia/Bangkok
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+    # ไม่ expose พอร์ต 4000 ออก host — frontend (nginx) ต่อผ่าน docker network เท่านั้น
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  uploads:

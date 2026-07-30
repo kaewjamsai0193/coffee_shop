@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: coffee_pos
+      TZ: Asia/Bangkok
+    # ไม่ expose DB ออก host (backend ต่อผ่าน docker network) — เลี่ยงชนพอร์ต
+    # ถ้าต้องการต่อจากเครื่องด้วยเครื่องมือ DB ค่อยเพิ่ม ports: ["5433:5432"]
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # schema + seed โหลดอัตโนมัติตอนสร้าง DB ครั้งแรก
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d coffee_pos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/coffee_pos
+      JWT_SECRET: dev-secret-change-me-please-0193
+      JWT_EXPIRES_IN: 12h
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin1234
+      CLIENT_ORIGIN: http://localhost:8080
+      TZ: Asia/Bangkok
+    ports:
+      - "4000:4000"
+    volumes:
+      - uploads:/app/uploads
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:
+  uploads:

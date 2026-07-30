@@ -1,0 +1,5 @@
+# ให้ทุกไฟล์ข้อความใช้ LF ใน repo (กันปัญหา CRLF บน Windows)
+* text=auto eol=lf
+
+# สคริปต์ที่รันใน container Linux ต้องเป็น LF เสมอ
+*.sh text eol=lf
