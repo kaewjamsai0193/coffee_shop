@@ -71,11 +71,11 @@ const Orders = () => {
       {orders.length === 0 ? (
         <p className="py-16 text-center text-grounds/40">ยังไม่มีออเดอร์ที่รอดำเนินการ</p>
       ) : (
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="grid gap-4 pb-4 sm:grid-cols-2 lg:grid-cols-3">
           {orders.map((o) => (
             <div
               key={o.id}
-              className={`ticket relative w-64 shrink-0 p-4 ${
+              className={`ticket relative flex flex-col p-4 ${
                 leaving[o.id] ? 'animate-ticket-out' : 'animate-ticket-in'
               }`}
             >
@@ -95,7 +95,7 @@ const Orders = () => {
                 ))}
               </ul>
 
-              <div className="mb-3 flex justify-between font-medium">
+              <div className="mb-3 mt-auto flex justify-between font-medium">
                 <span className="text-grounds/60">รวม</span>
                 <span className="font-display text-xl text-grounds">{baht(o.total)}</span>
               </div>
