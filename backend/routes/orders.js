@@ -16,6 +16,10 @@ router.post('/', async (req, res, next) => {
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'ยังไม่ได้เลือกรายการสินค้า' });
     }
+    // endpoint นี้เปิด public — จำกัดเพดานกันยิงออเดอร์ขยะขนาดมหึมา
+    if (items.length > 50) {
+      return res.status(400).json({ error: 'รายการสินค้าต่อออเดอร์ต้องไม่เกิน 50 รายการ' });
+    }
 
     await client.query('BEGIN');
 
@@ -25,7 +29,7 @@ router.post('/', async (req, res, next) => {
 
     for (const line of items) {
       const qty = parseInt(line.qty, 10);
-      if (!line.menu_item_id || !qty || qty < 1) {
+      if (!line.menu_item_id || !qty || qty < 1 || qty > 999) {
         throw Object.assign(new Error('รายการสินค้าไม่ถูกต้อง'), { status: 400 });
       }
       // ดึงชื่อ+ราคาปัจจุบันมา snapshot (business rule) และกันสั่งเมนูที่ปิดขาย

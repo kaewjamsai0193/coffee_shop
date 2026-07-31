@@ -44,10 +44,11 @@ router.post('/', requireAdmin, async (req, res, next) => {
       if (!name) {
         throw Object.assign(new Error('มีรายการที่ยังไม่ได้กรอกชื่อวัตถุดิบ'), { status: 400 });
       }
-      if (!Number.isFinite(qty) || qty <= 0) {
-        throw Object.assign(new Error(`จำนวนของ "${name}" ต้องมากกว่า 0`), { status: 400 });
+      // เพดานตาม NUMERIC(10,2) — เกินแล้ว DB จะโยน error กลายเป็น 500 ไม่รู้เรื่อง
+      if (!Number.isFinite(qty) || qty <= 0 || qty > 99999999.99) {
+        throw Object.assign(new Error(`จำนวนของ "${name}" ไม่ถูกต้อง`), { status: 400 });
       }
-      if (!Number.isFinite(total) || total < 0) {
+      if (!Number.isFinite(total) || total < 0 || total > 99999999.99) {
         throw Object.assign(new Error(`ราคาของ "${name}" ไม่ถูกต้อง`), { status: 400 });
       }
 

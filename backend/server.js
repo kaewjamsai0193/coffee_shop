@@ -15,6 +15,8 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
+app.disable('x-powered-by'); // ไม่ป่าวประกาศว่าเป็น Express
+
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
 
@@ -30,10 +32,12 @@ app.use('/reports', reportRoutes);
 app.use('/purchases', purchaseRoutes);
 
 // error handler กลาง (คืน JSON ภาษาไทย)
+// 500 = error ที่ไม่ได้ตั้งใจ (เช่นจาก DB) — log ไว้ฝั่ง server พอ ไม่ส่งรายละเอียดภายในออกไป
 app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
-  res.status(status).json({ error: err.message || 'เกิดข้อผิดพลาดบนเซิร์ฟเวอร์' });
+  const message = status >= 500 ? 'เกิดข้อผิดพลาดบนเซิร์ฟเวอร์' : err.message || 'เกิดข้อผิดพลาด';
+  res.status(status).json({ error: message });
 });
 
 const PORT = process.env.PORT || 4000;

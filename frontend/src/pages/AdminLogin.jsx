@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../components/Toast.jsx';
@@ -12,11 +12,8 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // เข้าระบบอยู่แล้ว → ไปหน้าออเดอร์
-  if (isAdmin) {
-    navigate('/admin/order', { replace: true });
-    return null;
-  }
+  // เข้าระบบอยู่แล้ว → ไปหน้าออเดอร์ (ห้ามเรียก navigate() ระหว่าง render)
+  if (isAdmin) return <Navigate to="/admin/order" replace />;
 
   const submit = async (e) => {
     e.preventDefault();

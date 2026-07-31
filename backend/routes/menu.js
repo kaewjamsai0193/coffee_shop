@@ -7,6 +7,9 @@ const router = express.Router();
 
 const CATEGORIES = ['กาแฟสด', 'เย็น', 'ปั่น'];
 
+// ราคาต้องเป็นตัวเลข 0 ถึงเพดานของ NUMERIC(8,2) — กันค่าที่ทำให้ DB โยน error
+const validPrice = (p) => Number.isFinite(Number(p)) && Number(p) >= 0 && Number(p) <= 999999.99;
+
 // GET /menu — public — เฉพาะเมนูที่เปิดขาย (สำหรับหน้าสั่งสินค้า)
 router.get('/', async (req, res, next) => {
   try {
@@ -43,6 +46,9 @@ router.post('/', requireAdmin, uploadMenuImage, async (req, res, next) => {
     if (!name || price == null || !CATEGORIES.includes(category)) {
       return res.status(400).json({ error: 'ข้อมูลไม่ครบ: ต้องมีชื่อ ราคา และหมวดที่ถูกต้อง' });
     }
+    if (!validPrice(price)) {
+      return res.status(400).json({ error: 'ราคาไม่ถูกต้อง' });
+    }
 
     const { rows } = await query(
       `INSERT INTO menu_items (name, price, category)
@@ -73,8 +79,15 @@ router.patch('/:id', requireAdmin, uploadMenuImage, async (req, res, next) => {
     const { id } = req.params;
     const { name, price, category, is_available } = req.body;
 
+    // id ต้องเป็นตัวเลขเท่านั้น — ค่านี้ถูกใช้ตั้งชื่อไฟล์รูป ถ้าปล่อยผ่านจะเขียนไฟล์นอกโฟลเดอร์ uploads ได้
+    if (!/^\d+$/.test(id)) {
+      return res.status(404).json({ error: 'ไม่พบเมนูนี้' });
+    }
     if (category && !CATEGORIES.includes(category)) {
       return res.status(400).json({ error: 'หมวดไม่ถูกต้อง' });
+    }
+    if (price != null && !validPrice(price)) {
+      return res.status(400).json({ error: 'ราคาไม่ถูกต้อง' });
     }
 
     const fields = [];
