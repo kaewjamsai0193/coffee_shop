@@ -119,4 +119,59 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
   }
 });
 
+// GET /reports/profit?period=day|month|year&date=YYYY-MM-DD — admin
+// กำไร = ยอดขาย (completed_at) − ต้นทุนวัตถุดิบ (purchased_at) ของช่วงเดียวกัน
+router.get('/profit', requireAdmin, async (req, res, next) => {
+  try {
+    const period = req.query.period || 'day';
+    const ref = req.query.date;
+
+    const salesCond = {
+      day: 'o.completed_at::date = $1::date',
+      month: "date_trunc('month', o.completed_at) = date_trunc('month', $1::date)",
+      year: "date_trunc('year', o.completed_at) = date_trunc('year', $1::date)",
+    }[period];
+
+    const costCond = {
+      day: 'purchased_at = $1::date',
+      month: "date_trunc('month', purchased_at) = date_trunc('month', $1::date)",
+      year: "date_trunc('year', purchased_at) = date_trunc('year', $1::date)",
+    }[period];
+
+    if (!salesCond || !ref) {
+      return res.status(400).json({ error: 'ช่วงเวลาหรือวันที่ไม่ถูกต้อง' });
+    }
+
+    const sales = await query(
+      `SELECT COALESCE(SUM(oi.price * oi.qty), 0) AS total, COUNT(DISTINCT o.id)::int AS orders
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.status = 'completed' AND ${salesCond}`,
+      [ref]
+    );
+
+    const cost = await query(
+      `SELECT COALESCE(SUM(total), 0) AS total, COUNT(*)::int AS items
+       FROM ingredient_purchases
+       WHERE voided_at IS NULL AND ${costCond}`,
+      [ref]
+    );
+
+    const salesTotal = Number(sales.rows[0].total);
+    const costTotal = Number(cost.rows[0].total);
+
+    res.json({
+      period,
+      date: ref,
+      sales: salesTotal,
+      orders: sales.rows[0].orders,
+      cost: costTotal,
+      purchaseItems: cost.rows[0].items,
+      profit: salesTotal - costTotal,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;

@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import menuRoutes from './routes/menu.js';
 import orderRoutes from './routes/orders.js';
 import reportRoutes from './routes/reports.js';
+import purchaseRoutes from './routes/purchases.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use('/auth', authRoutes);
 app.use('/menu', menuRoutes);
 app.use('/orders', orderRoutes);
 app.use('/reports', reportRoutes);
+app.use('/purchases', purchaseRoutes);
 
 // error handler กลาง (คืน JSON ภาษาไทย)
 app.use((err, req, res, next) => {

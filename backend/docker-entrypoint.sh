@@ -7,5 +7,8 @@ until node scripts/create-admin.js; do
   sleep 2
 done
 
+echo "⏳ ตรวจ/สร้างตารางที่เพิ่มมาทีหลัง..."
+node scripts/migrate.js
+
 echo "🚀 เริ่ม backend"
 exec node server.js

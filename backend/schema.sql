@@ -1,6 +1,8 @@
 -- Coffee POS — schema + seed data
 -- รัน: createdb coffee_pos && psql -d coffee_pos -f backend/schema.sql
 
+DROP TABLE IF EXISTS ingredient_purchases CASCADE;
+DROP TABLE IF EXISTS ingredients CASCADE;
 DROP TABLE IF EXISTS order_items CASCADE;
 DROP TABLE IF EXISTS orders CASCADE;
 DROP TABLE IF EXISTS menu_items CASCADE;
@@ -43,9 +45,31 @@ CREATE TABLE order_items (
   qty           INTEGER NOT NULL CHECK (qty > 0)
 );
 
+-- คลังชื่อวัตถุดิบ — เติมอัตโนมัติเมื่อบันทึกชื่อใหม่ ใช้เป็นตัวเลือกในช่องชื่อ
+CREATE TABLE ingredients (
+  id         SERIAL PRIMARY KEY,
+  name       TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- รายการซื้อวัตถุดิบ — snapshot ชื่อ/ราคา ณ วันที่ซื้อ (ราคาแต่ละวันไม่เท่ากัน)
+-- ห้ามลบทิ้ง ใช้ voided_at เพื่อยกเลิกรายการ (รายการที่ยกเลิกไม่นับเป็นต้นทุน)
+CREATE TABLE ingredient_purchases (
+  id            SERIAL PRIMARY KEY,
+  ingredient_id INTEGER REFERENCES ingredients(id),
+  name_snapshot TEXT NOT NULL,
+  qty           NUMERIC(10,2) NOT NULL CHECK (qty > 0),
+  total         NUMERIC(10,2) NOT NULL CHECK (total >= 0),
+  purchased_at  DATE NOT NULL DEFAULT CURRENT_DATE,
+  voided_at     TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_completed_at ON orders(completed_at);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_purchases_purchased_at ON ingredient_purchases(purchased_at);
+CREATE INDEX idx_purchases_voided_at ON ingredient_purchases(voided_at);
 
 -- code ออเดอร์แบบ ORD-00000123 (คำนวณจาก id ตอน query ในฝั่ง backend)
 

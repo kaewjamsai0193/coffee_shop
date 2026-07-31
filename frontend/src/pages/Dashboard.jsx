@@ -2,61 +2,27 @@ import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { useToast } from '../components/Toast.jsx';
 import CountUp from '../components/CountUp.jsx';
+import PeriodPicker, { usePeriod, prevRefOf, prevLabelOf } from '../components/PeriodPicker.jsx';
+import ShowMore from '../components/ShowMore.jsx';
 
 const baht = (n) => Number(n).toFixed(2) + ' ฿';
-const pad = (n) => String(n).padStart(2, '0');
-const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 const dateTimeOf = (ts) =>
   new Date(ts).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
-const MODES = [
-  { key: 'day', label: 'รายวัน' },
-  { key: 'month', label: 'รายเดือน' },
-  { key: 'year', label: 'รายปี' },
-];
-
-const PREV_LABEL = { day: 'จากเมื่อวาน', month: 'จากเดือนที่แล้ว', year: 'จากปีที่แล้ว' };
-
-const ORDERS_PREVIEW = 20; // แสดงเท่านี้ก่อน แล้วค่อยกด "ดูทั้งหมด"
+const ORDERS_PREVIEW = 10; // แสดงเท่านี้ก่อน แล้วค่อยกด "ดูทั้งหมด"
 const MENU_PREVIEW = 10;
-
-const inputClass =
-  'rounded-lg border border-line bg-paper px-3 py-1.5 text-sm tabular-nums text-ink outline-none focus:border-ink';
-
-// วันอ้างอิงของช่วงก่อนหน้า ใช้ยิง /sales ซ้ำเพื่อเทียบยอด
-// (mode month/year ส่ง refDate เป็นวันที่ 1 เสมอ จึงไม่เจอปัญหาเดือนสั้น-ยาว)
-const prevRefOf = (mode, ref) => {
-  const d = new Date(ref);
-  if (mode === 'day') d.setDate(d.getDate() - 1);
-  else if (mode === 'month') d.setMonth(d.getMonth() - 1);
-  else d.setFullYear(d.getFullYear() - 1);
-  return ymd(d);
-};
 
 const Dashboard = () => {
   const { show } = useToast();
-  const now = new Date();
-  const today = ymd(now);
-  const thisMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+  const period = usePeriod();
+  const { mode, refDate, label, jumpTo } = period;
 
-  const [mode, setMode] = useState('day'); // default: รายวัน
-  // ค่าเริ่มต้น = วัน/เดือน/ปี ปัจจุบัน
-  const [day, setDay] = useState(today);
-  const [month, setMonth] = useState(thisMonth);
-  const [year, setYear] = useState(now.getFullYear());
   const [summary, setSummary] = useState(null); // ภาพรวมวันนี้/เดือนนี้/ปีนี้
   const [data, setData] = useState(null); // ช่วงที่เลือก
   const [prev, setPrev] = useState(null); // ช่วงก่อนหน้า ใช้เทียบ
   const [showAllMenu, setShowAllMenu] = useState(false);
   const [showAllOrders, setShowAllOrders] = useState(false);
-
-  // แปลงค่าที่เลือกเป็นวันอ้างอิง YYYY-MM-DD ส่งให้ backend
-  const refDate = useMemo(() => {
-    if (mode === 'day') return day;
-    if (mode === 'month') return `${month}-01`;
-    return `${year}-01-01`;
-  }, [mode, day, month, year]);
 
   useEffect(() => {
     api.getReport().then(setSummary).catch((e) => show(e.message, 'error'));
@@ -83,13 +49,6 @@ const Dashboard = () => {
     };
   }, [mode, refDate, show]);
 
-  // ข้อความสรุปช่วงเวลาที่กำลังดู
-  const periodLabel = useMemo(() => {
-    if (mode === 'day') return new Date(refDate).toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-    if (mode === 'month') return new Date(refDate).toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
-    return `ปี ${year}`;
-  }, [mode, refDate, year]);
-
   // เทียบกับช่วงก่อนหน้า — null = ยังโหลดไม่เสร็จ, kind 'new' = ช่วงก่อนไม่มียอดให้เทียบ
   const delta = useMemo(() => {
     if (!data || !prev) return null;
@@ -102,14 +61,6 @@ const Dashboard = () => {
   const maxMenuTotal = data?.breakdown?.[0]?.total || 0; // breakdown เรียงจากมากไปน้อยมาแล้ว
   const menuRows = data ? (showAllMenu ? data.breakdown : data.breakdown.slice(0, MENU_PREVIEW)) : [];
   const orderRows = data ? (showAllOrders ? data.orders : data.orders.slice(0, ORDERS_PREVIEW)) : [];
-
-  // กดการ์ดภาพรวม → กระโดดไปดูช่วงนั้นของปัจจุบัน
-  const jumpTo = (key) => {
-    setDay(today);
-    setMonth(thisMonth);
-    setYear(now.getFullYear());
-    setMode(key);
-  };
 
   const cards = [
     { key: 'day', label: 'วันนี้', value: summary?.today },
@@ -139,44 +90,11 @@ const Dashboard = () => {
       </div>
 
       <h2 className="mb-3 mt-8 text-lg font-bold text-ink">เจาะดูตามช่วงเวลา</h2>
-
-      {/* เลือกช่วงเวลา + ตัวเลือกวัน/เดือน/ปี */}
-      <div className="mb-5 flex flex-wrap items-center gap-3">
-        <div className="flex gap-1">
-          {MODES.map((m) => (
-            <button
-              key={m.key}
-              onClick={() => setMode(m.key)}
-              className={`rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                mode === m.key ? 'bg-surface font-semibold text-ink' : 'font-medium text-muted hover:text-ink'
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-
-        {mode === 'day' && (
-          <input type="date" value={day} onChange={(e) => setDay(e.target.value)} className={inputClass} />
-        )}
-        {mode === 'month' && (
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className={inputClass} />
-        )}
-        {mode === 'year' && (
-          <input
-            type="number"
-            min="2020"
-            max="2100"
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className={`w-28 ${inputClass}`}
-          />
-        )}
-      </div>
+      <PeriodPicker period={period} />
 
       {/* ยอดรวมของช่วงที่เลือก + เทียบช่วงก่อนหน้า */}
       <div className="card p-6">
-        <div className="text-sm text-muted">ยอดขาย · {periodLabel}</div>
+        <div className="text-sm text-muted">ยอดขาย · {label}</div>
         <div className="mt-1 text-4xl font-bold tabular-nums text-ink">
           {data ? <CountUp value={data.total} /> : '0.00'} <span className="text-2xl">฿</span>
         </div>
@@ -184,12 +102,12 @@ const Dashboard = () => {
         <div className="mt-2 min-h-5 text-sm">
           {delta?.kind === 'up' && (
             <span className="text-matcha">
-              ▲ {delta.pct.toFixed(1)}% {PREV_LABEL[mode]} ({baht(delta.before)})
+              ▲ {delta.pct.toFixed(1)}% {prevLabelOf(mode)} ({baht(delta.before)})
             </span>
           )}
           {delta?.kind === 'down' && (
             <span className="text-coral">
-              ▼ {delta.pct.toFixed(1)}% {PREV_LABEL[mode]} ({baht(delta.before)})
+              ▼ {delta.pct.toFixed(1)}% {prevLabelOf(mode)} ({baht(delta.before)})
             </span>
           )}
           {delta?.kind === 'new' && <span className="text-muted">ช่วงก่อนหน้าไม่มียอดขายให้เทียบ</span>}
@@ -236,13 +154,14 @@ const Dashboard = () => {
             ))
           )}
         </div>
-        {data && data.breakdown.length > MENU_PREVIEW && !showAllMenu && (
-          <button
-            onClick={() => setShowAllMenu(true)}
-            className="w-full py-2.5 text-sm text-muted transition-colors hover:text-ink"
-          >
-            ดูทั้งหมด {data.breakdown.length} เมนู
-          </button>
+        {data && (
+          <ShowMore
+            expanded={showAllMenu}
+            onToggle={() => setShowAllMenu((v) => !v)}
+            total={data.breakdown.length}
+            limit={MENU_PREVIEW}
+            unit="เมนู"
+          />
         )}
       </div>
 
@@ -277,13 +196,15 @@ const Dashboard = () => {
             </div>
           ))
         )}
-        {data && data.orders.length > ORDERS_PREVIEW && !showAllOrders && (
-          <button
-            onClick={() => setShowAllOrders(true)}
-            className="card w-full py-3 text-sm text-muted transition-colors hover:text-ink"
-          >
-            ดูทั้งหมด {data.orders.length} ออเดอร์
-          </button>
+        {data && (
+          <ShowMore
+            expanded={showAllOrders}
+            onToggle={() => setShowAllOrders((v) => !v)}
+            total={data.orders.length}
+            limit={ORDERS_PREVIEW}
+            unit="ออเดอร์"
+            className="card py-3"
+          />
         )}
       </div>
     </div>

@@ -49,4 +49,11 @@ export const api = {
   cancelOrder: (id) => request(`/orders/${id}/cancel`, { method: 'PATCH', auth: true }),
   getReport: () => request('/reports/summary', { auth: true }),
   getSales: (period, date) => request(`/reports/sales?period=${period}&date=${date}`, { auth: true }),
+  getProfit: (period, date) => request(`/reports/profit?period=${period}&date=${date}`, { auth: true }),
+
+  // วัตถุดิบ
+  getIngredients: () => request('/purchases/ingredients', { auth: true }),
+  createPurchase: (body) => request('/purchases', { method: 'POST', body, auth: true }),
+  getPurchases: (period, date) => request(`/purchases?period=${period}&date=${date}`, { auth: true }),
+  voidPurchase: (id) => request(`/purchases/${id}/void`, { method: 'PATCH', auth: true }),
 };

@@ -24,7 +24,9 @@ const Navbar = () => {
     { to: '/admin/order', label: 'เมนู' },
     { to: '/admin/orders', label: 'ออเดอร์', badge: pending },
     { to: '/admin/menu', label: 'จัดการเมนู' },
+    { to: '/admin/purchases', label: 'ซื้อวัตถุดิบ' },
     { to: '/admin/dashboard', label: 'ยอดขาย' },
+    { to: '/admin/profit', label: 'กำไร' },
   ];
 
   const linkClass = ({ isActive }) =>

@@ -79,6 +79,12 @@ matcha: '#4F8B6E', cherry: '#D1483B',
 | ปุ่มข้อความ | `text-muted hover:text-ink` |
 | Pill สถานะ/ข้อมูล (ไม่ใช่ปุ่ม) | `border border-line bg-paper rounded-lg px-3 py-1.5` |
 
+**Toast** (แจ้งเตือนผลลัพธ์ เช่น "บันทึกแล้ว" / ข้อความ error)
+- วางที่ **ขอบบนของจอ** `fixed top-20 left-1/2 -translate-x-1/2` — `top-20` เพื่อให้พ้นแถบหัว/navbar
+- สำเร็จใช้ `bg-matcha` · ผิดพลาดใช้ `bg-cherry` · ตัวอักษร `text-paper` จัดกึ่งกลาง
+- `pointer-events-none` ที่ตัวครอบ ไม่ให้บังการกดปุ่มที่อยู่ข้างใต้
+- อยู่ 2.5 วินาทีแล้วหายเอง ไม่มีปุ่มปิด (ไม่ใช่ข้อมูลที่ต้องอ่านซ้ำ)
+
 **ชิปหมวด** ไม่ใช้พื้นดำ — ตัวที่ active คือตัวที่ "สว่างกว่า" ไม่ใช่ "เข้มกว่า"
 active: `bg-paper border-line font-semibold text-ink` + badge `bg-amber text-ink`
 ปกติ: `bg-surface border-transparent text-muted` + badge `bg-paper text-muted`
@@ -180,6 +186,7 @@ badge ของชิปที่ไม่ active ใช้ `bg-paper` เพื
 | ออเดอร์ใหม่เข้าบอร์ด | `animate-card-in` — slide-up 16px + fade ~350ms ease-out |
 | ยืนยันออเดอร์เสร็จ | `animate-stamp` scale-in (0 → 1.1 → 1) 250ms แล้ว `animate-card-out` 400ms |
 | ตัวเลขยอดขาย dashboard | count-up 800ms ease-out ตอน mount ครั้งเดียว |
+| toast โผล่ | `animate-toast-in` — เลื่อนลง 8px + fade 200ms ease-out |
 | เปลี่ยนสีตอน hover | `transition-colors` |
 
 **กฎสำคัญ:** `prefers-reduced-motion: reduce` ตัด animation ทั้งหมด (ทำไว้แล้วใน `index.css` แบบ global)
@@ -190,8 +197,11 @@ badge ของชิปที่ไม่ active ใช้ `bg-paper` เพื
 ## 6. สิ่งที่ห้ามทำ
 
 - **ห้าม scroll ซ้อน scroll** — ห้ามใส่กล่อง `max-h-* overflow-y-auto` ในหน้าที่เลื่อนได้อยู่แล้ว (ล้อเมาส์แล้วเดาไม่ออกว่าอันไหนจะเลื่อน)
-  รายการยาวให้ตัดแสดงบางส่วนแล้วมีปุ่ม "ดูทั้งหมด N รายการ" แทน — ได้เรื่อง performance ด้วยเพราะไม่ต้อง render ทั้งก้อน
+  รายการยาวให้ตัดแสดงบางส่วนแล้วต่อท้ายด้วย `<ShowMore>` — ได้เรื่อง performance ด้วยเพราะไม่ต้อง render ทั้งก้อน
   **ข้อยกเว้นเดียว:** พาเนลข้างที่ sticky และสูงตาม viewport (ตะกร้าหน้า Order) เลื่อนภายในตัวเองได้ เพราะไม่ได้เลื่อนไปพร้อมหน้า
+- **ปุ่มขยายรายการต้องย่อกลับได้เสมอ** — ใช้ `components/ShowMore.jsx` ตัวเดียวทุกที่ สลับข้อความระหว่าง
+  "ดูทั้งหมด N รายการ" กับ "ดูน้อยลง (เหลือ N รายการ)" ห้ามทำปุ่มที่กดขยายแล้วย่อกลับไม่ได้
+  component ซ่อนตัวเองอัตโนมัติเมื่อจำนวนยังไม่เกิน limit จึงเรียกใช้ได้เลยโดยไม่ต้องเช็คเงื่อนไขซ้ำที่หน้าเรียก
 - **ห้าม scroll แนวนอนกับรายการหลักของหน้า** — ของที่หลุดออกนอกจอทางขวามักไม่ถูกมองเห็นเลย ใช้ grid ตัดบรรทัดลงล่างแทน
 - ห้ามใส่เงาให้การ์ด (`shadow-*`) — ธีมนี้ใช้เส้นขอบสร้างความลึก
 - ห้ามใส่ gradient พื้นหลังลอยๆ ที่ไม่มีความหมาย
