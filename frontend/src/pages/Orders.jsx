@@ -26,7 +26,7 @@ const Orders = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // เอาตั๋วออกจากบอร์ดพร้อม animation
+  // เอาการ์ดออกจากบอร์ดพร้อม animation
   const leave = (id, kind) => {
     refresh(); // อัปเดต badge ทันที
     setLeaving((l) => ({ ...l, [id]: kind }));
@@ -67,49 +67,49 @@ const Orders = () => {
 
   return (
     <div>
-      <h1 className="mb-4 font-display text-2xl text-grounds">ออเดอร์ในครัว</h1>
+      <h1 className="mb-4 text-lg font-bold text-ink">ออเดอร์ในครัว</h1>
       {orders.length === 0 ? (
-        <p className="py-16 text-center text-grounds/40">ยังไม่มีออเดอร์ที่รอดำเนินการ</p>
+        <div className="card p-16 text-center text-sm text-muted">ยังไม่มีออเดอร์ที่รอดำเนินการ</div>
       ) : (
         <div className="grid gap-4 pb-4 sm:grid-cols-2 lg:grid-cols-3">
           {orders.map((o) => (
             <div
               key={o.id}
-              className={`ticket relative flex flex-col p-4 ${
-                leaving[o.id] ? 'animate-ticket-out' : 'animate-ticket-in'
+              className={`card relative flex flex-col p-4 ${
+                leaving[o.id] ? 'animate-card-out' : 'animate-card-in'
               }`}
             >
-              <div className="flex items-center justify-between font-mono text-sm text-grounds/60">
-                <span>{o.code}</span>
-                <span>{timeOf(o.created_at)}</span>
+              <div className="flex items-center justify-between text-sm text-muted">
+                <span className="tabular-nums">{o.code}</span>
+                <span className="tabular-nums">{timeOf(o.created_at)}</span>
               </div>
 
               <ul className="my-3 space-y-1.5">
                 {o.items.map((it, idx) => (
-                  <li key={idx} className="flex justify-between border-b border-dashed border-grounds/15 pb-1.5 text-sm">
-                    <span className="text-grounds">
-                      <span className="font-mono text-grounds/60">{it.qty}×</span> {it.name}
+                  <li key={idx} className="flex justify-between border-b border-line pb-1.5 text-sm last:border-b-0">
+                    <span className="text-ink">
+                      <span className="tabular-nums text-muted">{it.qty}×</span> {it.name}
                     </span>
-                    <span className="font-mono text-grounds/70">{baht(Number(it.price) * it.qty)}</span>
+                    <span className="tabular-nums text-muted">{baht(Number(it.price) * it.qty)}</span>
                   </li>
                 ))}
               </ul>
 
-              <div className="mb-3 mt-auto flex justify-between font-medium">
-                <span className="text-grounds/60">รวม</span>
-                <span className="font-display text-xl text-grounds">{baht(o.total)}</span>
+              <div className="mb-3 mt-auto flex items-baseline justify-between border-t border-line pt-3">
+                <span className="text-sm text-muted">รวม</span>
+                <span className="text-xl font-bold tabular-nums text-ink">{baht(o.total)}</span>
               </div>
 
               {leaving[o.id] === 'complete' && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <span className="animate-stamp rounded-full border-4 border-matcha px-4 py-2 font-display text-2xl text-matcha">
+                  <span className="animate-stamp rounded-full border-4 border-matcha px-4 py-2 text-2xl font-bold text-matcha">
                     ✓ เสร็จ
                   </span>
                 </div>
               )}
               {leaving[o.id] === 'cancel' && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <span className="animate-stamp rounded-full border-4 border-cherry px-4 py-2 font-display text-2xl text-cherry">
+                  <span className="animate-stamp rounded-full border-4 border-coral px-4 py-2 text-2xl font-bold text-coral">
                     ✕ ยกเลิก
                   </span>
                 </div>
@@ -119,14 +119,14 @@ const Orders = () => {
                 <button
                   onClick={() => cancel(o)}
                   disabled={!!leaving[o.id]}
-                  className="rounded border border-cherry/40 px-3 py-2.5 text-sm font-medium text-cherry transition-transform duration-100 active:scale-95 disabled:opacity-50"
+                  className="rounded-lg border border-line px-3 py-2.5 text-sm font-medium text-coral transition-transform duration-100 active:scale-95 disabled:opacity-50"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={() => complete(o)}
                   disabled={!!leaving[o.id]}
-                  className="flex-1 rounded bg-matcha py-2.5 font-medium text-paper transition-transform duration-100 active:scale-95 disabled:opacity-50"
+                  className="flex-1 rounded-lg bg-matcha py-2.5 font-medium text-paper transition-transform duration-100 active:scale-95 disabled:opacity-50"
                 >
                   เสร็จแล้ว
                 </button>

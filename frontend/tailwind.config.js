@@ -5,17 +5,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        foam: '#FBF3E9',
-        grounds: '#4A2E2A',
-        marigold: '#E8A33D',
+        ink: '#1F1F1F',
+        muted: '#9A9A9A',
+        line: '#EDEDED',
+        surface: '#F5F5F5',
+        canvas: '#F1F1F2',
+        paper: '#FFFFFF',
+        amber: '#F5C26B',
+        coral: '#F26B6B',
         matcha: '#4F8B6E',
         cherry: '#D1483B',
-        paper: '#FFFFFF',
       },
       fontFamily: {
-        display: ['Fraunces', 'serif'],
         sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-        mono: ['"Space Mono"', 'monospace'],
       },
     },
   },

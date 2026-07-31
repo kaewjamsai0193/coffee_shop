@@ -27,23 +27,23 @@ export const ConfirmProvider = ({ children }) => {
       {children}
       {opts && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-grounds/40 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
           onClick={() => close(false)}
         >
-          <div className="ticket w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-2 font-display text-xl text-grounds">{opts.title}</h2>
-            {opts.message && <div className="mb-5 text-sm text-grounds/70">{opts.message}</div>}
+          <div className="card w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-2 text-lg font-bold text-ink">{opts.title}</h2>
+            {opts.message && <div className="mb-5 text-sm text-muted">{opts.message}</div>}
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => close(false)}
-                className="rounded px-4 py-2 text-sm text-grounds/60 hover:text-grounds"
+                className="rounded-lg px-4 py-2 text-sm text-muted hover:text-ink"
               >
                 {opts.cancelText || 'ยกเลิก'}
               </button>
               <button
                 onClick={() => close(true)}
-                className={`rounded px-5 py-2 text-sm font-medium transition-transform duration-100 active:scale-95 ${
-                  opts.danger ? 'bg-cherry text-paper' : 'bg-marigold text-grounds'
+                className={`rounded-lg px-5 py-2 text-sm font-medium transition-transform duration-100 active:scale-95 ${
+                  opts.danger ? 'bg-coral text-paper' : 'bg-amber text-ink'
                 }`}
               >
                 {opts.confirmText || 'ยืนยัน'}

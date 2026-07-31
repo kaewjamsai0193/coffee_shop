@@ -17,7 +17,7 @@ export const ToastProvider = ({ children }) => {
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
           <div
-            className={`rounded px-4 py-2 text-sm font-medium text-paper shadow-lg ${
+            className={`rounded-lg px-4 py-2 text-sm font-medium text-paper ${
               toast.type === 'error' ? 'bg-cherry' : 'bg-matcha'
             }`}
           >

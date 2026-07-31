@@ -33,37 +33,38 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-foam px-4">
-      <form onSubmit={submit} className="ticket w-full max-w-sm p-6">
-        <h1 className="mb-1 font-display text-2xl text-grounds">เข้าสู่ระบบผู้ดูแล</h1>
-        <p className="mb-5 text-sm text-grounds/50">สำหรับเจ้าของร้าน/ผู้จัดการเท่านั้น</p>
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <form onSubmit={submit} className="card w-full max-w-sm p-6">
+        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-ink text-paper">☕</div>
+        <h1 className="mb-1 text-lg font-bold text-ink">เข้าสู่ระบบผู้ดูแล</h1>
+        <p className="mb-5 text-sm text-muted">สำหรับเจ้าของร้าน/ผู้จัดการเท่านั้น</p>
 
         {sessionExpired && (
-          <div className="mb-5 rounded border border-cherry/25 bg-cherry/10 px-3 py-2 text-sm text-cherry">
+          <div className="mb-5 rounded-lg border border-coral/25 bg-coral/10 px-3 py-2 text-sm text-coral">
             เซสชันหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่
           </div>
         )}
 
-        <label className="mb-1 block text-sm text-grounds/70">ชื่อผู้ใช้</label>
+        <label className="mb-1 block text-sm text-muted">ชื่อผู้ใช้</label>
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          className="mb-4 w-full rounded border border-grounds/15 bg-foam px-3 py-2 outline-none focus:border-marigold"
+          className="mb-4 w-full rounded-lg border border-line bg-paper px-3 py-2 text-ink outline-none focus:border-ink"
           autoFocus
         />
 
-        <label className="mb-1 block text-sm text-grounds/70">รหัสผ่าน</label>
+        <label className="mb-1 block text-sm text-muted">รหัสผ่าน</label>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-6 w-full rounded border border-grounds/15 bg-foam px-3 py-2 outline-none focus:border-marigold"
+          className="mb-6 w-full rounded-lg border border-line bg-paper px-3 py-2 text-ink outline-none focus:border-ink"
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded bg-marigold py-2.5 font-medium text-grounds transition-transform duration-100 active:scale-95 disabled:opacity-40"
+          className="w-full rounded-lg bg-amber py-2.5 font-medium text-ink transition-transform duration-100 active:scale-95 disabled:opacity-40"
         >
           {loading ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}
         </button>

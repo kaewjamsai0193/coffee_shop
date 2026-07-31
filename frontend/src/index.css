@@ -3,47 +3,44 @@
 @tailwind utilities;
 
 :root {
-  --foam: #fbf3e9;
-  --grounds: #4a2e2a;
-  --marigold: #e8a33d;
+  --ink: #1f1f1f;
+  --muted: #9a9a9a;
+  --line: #ededed;
+  --surface: #f5f5f5;
+  --canvas: #f1f1f2;
+  --paper: #ffffff;
+  --amber: #f5c26b;
+  --coral: #f26b6b;
   --matcha: #4f8b6e;
   --cherry: #d1483b;
-  --paper: #ffffff;
 }
 
 body {
-  background: var(--foam);
-  color: var(--grounds);
+  background: var(--canvas);
+  color: var(--ink);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
 @layer components {
-  /* Signature "Ticket Card" (Design.md §3) */
-  .ticket {
+  /* Signature card (Design.md §3) — ขอบบาง ไม่มีเงา มุม 12px */
+  .card {
     background: var(--paper);
-    border-radius: 4px;
-    position: relative;
-    box-shadow: 0 2px 8px rgba(74, 46, 42, 0.08);
-  }
-  .ticket::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: 0;
-    right: 0;
-    height: 8px;
-    background-image: radial-gradient(circle, var(--foam) 3px, transparent 3px);
-    background-size: 12px 8px;
-    background-position: 0 -4px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
   }
 }
 
 /* Motion (Design.md §5) */
-@keyframes ticket-in {
-  from { transform: translateY(24px) rotate(-2deg); opacity: 0; }
-  to { transform: translateY(0) rotate(0); opacity: 1; }
+@keyframes card-in {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
-.animate-ticket-in { animation: ticket-in 350ms ease-out; }
+.animate-card-in { animation: card-in 350ms ease-out; }
+
+@keyframes card-out {
+  to { transform: translateY(-12px); opacity: 0; }
+}
+.animate-card-out { animation: card-out 400ms ease-in forwards; }
 
 @keyframes stamp-in {
   0% { transform: scale(0); opacity: 0; }
@@ -51,11 +48,6 @@ body {
   100% { transform: scale(1); opacity: 1; }
 }
 .animate-stamp { animation: stamp-in 250ms ease-out; }
-
-@keyframes ticket-out {
-  to { transform: translateY(-12px); opacity: 0; }
-}
-.animate-ticket-out { animation: ticket-out 400ms ease-in forwards; }
 
 /* กฎ §5: เคารพ prefers-reduced-motion — ตัด animation ทั้งหมด */
 @media (prefers-reduced-motion: reduce) {

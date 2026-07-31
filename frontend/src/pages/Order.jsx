@@ -5,33 +5,80 @@ import { usePending } from '../context/PendingContext.jsx';
 import { useConfirm } from '../components/Confirm.jsx';
 import MenuImage from '../components/MenuImage.jsx';
 
+const SHOP_NAME = 'Coffee POS';
 const ALL = 'ทั้งหมด';
-const TABS = [ALL, 'กาแฟสด', 'เย็น', 'ปั่น']; // 'ทั้งหมด' = รวมทุกเมนู
+const CAT_ORDER = ['กาแฟสด', 'เย็น', 'ปั่น']; // ลำดับที่อยากให้ชิปเรียง หมวดอื่นต่อท้ายอัตโนมัติ
 const baht = (n) => Number(n).toFixed(2) + ' ฿';
 
-// embedded=true → ฝังในหน้า admin (ใช้ Navbar/main ของ layout, ไม่มี header/gear ของตัวเอง)
+const IconSearch = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+    <circle cx="11" cy="11" r="7" />
+    <path d="M20 20l-3.6-3.6" strokeLinecap="round" />
+  </svg>
+);
+
+const IconTrash = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+    <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+// embedded=true → ฝังในหน้า admin (ใช้ layout ของ admin, ไม่มีแถบบนของตัวเอง)
 const Order = ({ embedded = false }) => {
   const { show } = useToast();
   const { refresh } = usePending(); // no-op บนหน้า public (ไม่มี provider)
   const confirm = useConfirm();
   const [menu, setMenu] = useState([]);
   const [tab, setTab] = useState(ALL);
+  const [q, setQ] = useState('');
   const [cart, setCart] = useState({}); // { [id]: { item, qty } }
   const [bumped, setBumped] = useState(null); // id ที่เพิ่ง +1 (ให้ badge เด้ง)
   const [submitting, setSubmitting] = useState(false);
   const [picking, setPicking] = useState(null); // เมนูที่กำลังเลือกจำนวนใน popup
   const [pickQty, setPickQty] = useState(1);
+  const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
     api.getMenu().then(setMenu).catch((e) => show(e.message, 'error'));
   }, [show]);
 
-  const shown = useMemo(
-    () => (tab === ALL ? menu : menu.filter((m) => m.category === tab)),
-    [menu, tab]
+  // นาฬิกาบนแถบหัว — ละเอียดระดับนาที เลยเดินทุก 30 วิพอ ไม่ต้อง re-render ทุกวินาที
+  useEffect(() => {
+    if (embedded) return;
+    const t = setInterval(() => setClock(new Date()), 30000);
+    return () => clearInterval(t);
+  }, [embedded]);
+
+  const clockLabel = useMemo(
+    () =>
+      `${clock.toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })} · ${clock.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}`,
+    [clock]
   );
+
+  // ชิปหมวด + จำนวนเมนูในหมวด (นับจากเมนูทั้งหมด ไม่ขึ้นกับคำค้น)
+  const tabs = useMemo(() => {
+    const counts = {};
+    menu.forEach((m) => {
+      counts[m.category] = (counts[m.category] || 0) + 1;
+    });
+    const known = CAT_ORDER.filter((c) => counts[c]);
+    const extra = Object.keys(counts).filter((c) => !CAT_ORDER.includes(c));
+    return [
+      { key: ALL, count: menu.length },
+      ...[...known, ...extra].map((c) => ({ key: c, count: counts[c] })),
+    ];
+  }, [menu]);
+
+  const shown = useMemo(() => {
+    const kw = q.trim().toLowerCase();
+    return menu.filter(
+      (m) => (tab === ALL || m.category === tab) && (!kw || m.name.toLowerCase().includes(kw))
+    );
+  }, [menu, tab, q]);
+
   const lines = Object.values(cart);
   const total = lines.reduce((sum, l) => sum + Number(l.item.price) * l.qty, 0);
+  const totalQty = lines.reduce((sum, l) => sum + l.qty, 0);
 
   const addToCartQty = (item, qty) => {
     setCart((c) => ({ ...c, [item.id]: { item, qty: (c[item.id]?.qty || 0) + qty } }));
@@ -39,7 +86,7 @@ const Order = ({ embedded = false }) => {
     setTimeout(() => setBumped(null), 400);
   };
 
-  // แตะเมนู → เปิด popup โชว์รูป + เลือกจำนวน (เริ่มที่ 1)
+  // แตะการ์ด → เปิด popup โชว์รูป + เลือกจำนวน (เริ่มที่ 1)
   const selectItem = (item) => {
     setPickQty(1);
     setPicking(item);
@@ -61,6 +108,24 @@ const Order = ({ embedded = false }) => {
     });
   };
 
+  // ลบทีละรายการไม่ต้องถามยืนยัน (กด − จนหมดก็ได้ผลเดียวกัน) แต่ล้างทั้งตะกร้าต้องถาม
+  const removeLine = (id) =>
+    setCart((c) => {
+      const { [id]: _, ...rest } = c;
+      return rest;
+    });
+
+  const clearCart = async () => {
+    const ok = await confirm({
+      title: 'ล้างรายการทั้งหมด',
+      message: `ลบทั้ง ${lines.length} รายการออกจากตะกร้า?`,
+      confirmText: 'ล้างทั้งหมด',
+      cancelText: 'ไม่ใช่',
+      danger: true,
+    });
+    if (ok) setCart({});
+  };
+
   const submit = async () => {
     if (lines.length === 0) return;
     // popup สรุปออเดอร์ + ยอดรวม ก่อนส่งจริง
@@ -73,13 +138,13 @@ const Order = ({ embedded = false }) => {
             {lines.map((l) => (
               <li key={l.item.id} className="flex justify-between">
                 <span>{l.item.name} × {l.qty}</span>
-                <span className="font-mono">{baht(Number(l.item.price) * l.qty)}</span>
+                <span className="tabular-nums">{baht(Number(l.item.price) * l.qty)}</span>
               </li>
             ))}
           </ul>
-          <div className="flex justify-between border-t border-dashed border-grounds/20 pt-2 font-medium text-grounds">
+          <div className="flex justify-between border-t border-line pt-2 font-medium text-ink">
             <span>รวม</span>
-            <span className="font-mono">{baht(total)}</span>
+            <span className="tabular-nums">{baht(total)}</span>
           </div>
         </div>
       ),
@@ -99,92 +164,167 @@ const Order = ({ embedded = false }) => {
     }
   };
 
-  const grid = (
+  const body = (
     <>
-    <div
-      className={`grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem] ${
-        embedded ? '' : 'mx-auto max-w-6xl px-4 pb-10'
-      }`}
-    >
-      {/* ซ้าย: เมนู */}
-        <section>
-          <div className="mb-4 flex flex-wrap gap-2">
-            {TABS.map((c) => (
+      <div className={`grid grid-cols-1 gap-5 lg:grid-cols-[1fr_22rem] ${embedded ? '' : 'mx-auto max-w-7xl px-4 pb-10 pt-5'}`}>
+        {/* แถบหัวเมนู = แถวบนของคอลัมน์ซ้าย (ตะกร้าไปเริ่มแถว 2 พร้อมการ์ดเมนู) */}
+        <div className="lg:col-start-1 lg:row-start-1">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-ink">เมนู</h2>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+                <IconSearch />
+              </span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="ค้นหาเมนู"
+                className="w-56 rounded-lg border border-line bg-paper py-2 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-muted focus:border-ink"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {tabs.map((t) => (
               <button
-                key={c}
-                onClick={() => setTab(c)}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  tab === c ? 'bg-grounds text-foam' : 'bg-paper text-grounds/70 hover:text-grounds'
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                  tab === t.key
+                    ? 'border-line bg-paper font-semibold text-ink'
+                    : 'border-transparent bg-surface font-medium text-muted hover:text-ink'
                 }`}
               >
-                {c}
+                {t.key}
+                <span
+                  className={`rounded px-1.5 text-xs tabular-nums ${
+                    tab === t.key ? 'bg-amber text-ink' : 'bg-paper text-muted'
+                  }`}
+                >
+                  {t.count}
+                </span>
               </button>
             ))}
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {shown.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => selectItem(item)}
-                className="ticket relative overflow-hidden p-2 text-left transition-transform duration-100 active:scale-95"
-              >
-                <MenuImage imageUrl={item.image_url} category={item.category} />
-                {cart[item.id] && (
-                  <span
-                    className={`absolute right-3 top-3 flex h-6 min-w-6 items-center justify-center rounded-full bg-marigold px-1.5 font-mono text-xs text-grounds ${
-                      bumped === item.id ? 'animate-bounce' : ''
-                    }`}
+        {/* ซ้าย: การ์ดเมนู */}
+        <section className="lg:col-start-1 lg:row-start-2">
+          {shown.length === 0 ? (
+            <div className="card p-10 text-center text-sm text-muted">
+              {q.trim() ? `ไม่พบเมนูที่ตรงกับ "${q.trim()}"` : 'ยังไม่มีเมนูในหมวดนี้'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+              {shown.map((item) => (
+                <div key={item.id} className="card relative">
+                  <button
+                    onClick={() => selectItem(item)}
+                    className="block w-full p-2 text-left transition-transform duration-100 active:scale-[0.98]"
                   >
-                    {cart[item.id].qty}
-                  </span>
-                )}
-                <div className="mt-2 line-clamp-1 text-sm font-medium text-grounds">{item.name}</div>
-                <div className="font-display text-lg text-grounds">{baht(item.price)}</div>
-              </button>
-            ))}
-          </div>
+                    <div className="relative">
+                      <MenuImage imageUrl={item.image_url} category={item.category} />
+                      {cart[item.id] && (
+                        <span
+                          className={`absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-ink px-1.5 text-xs tabular-nums text-paper ${
+                            bumped === item.id ? 'animate-bounce' : ''
+                          }`}
+                        >
+                          {cart[item.id].qty}
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 line-clamp-1 px-1 text-sm font-medium text-ink">{item.name}</div>
+                    <div className="mt-0.5 px-1 pb-10 text-base font-bold tabular-nums text-ink">
+                      {baht(item.price)}
+                    </div>
+                  </button>
+
+                  {/* กดเพิ่มทีละชิ้นโดยไม่ต้องเปิด popup */}
+                  <button
+                    onClick={() => addToCartQty(item, 1)}
+                    aria-label={`เพิ่ม ${item.name}`}
+                    className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-lg text-paper transition-transform duration-100 active:scale-90"
+                  >
+                    +
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
-        {/* ขวา: ตะกร้า (ticket sticky) */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
-          <div className="ticket p-4">
-            <div className="mb-3 font-mono text-sm text-grounds/60">🧾 ตะกร้า</div>
-            {lines.length === 0 ? (
-              <p className="py-8 text-center text-sm text-grounds/40">ยังไม่มีรายการ</p>
-            ) : (
-              <ul className="space-y-2">
-                {lines.map((l) => (
-                  <li
-                    key={l.item.id}
-                    className="flex items-center justify-between border-b border-dashed border-grounds/15 pb-2 text-sm"
-                  >
-                    <span className="flex-1 text-grounds">{l.item.name}</span>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => changeQty(l.item.id, -1)} className="h-6 w-6 rounded bg-foam text-grounds">−</button>
-                      <span className="w-5 text-center font-mono">{l.qty}</span>
-                      <button onClick={() => changeQty(l.item.id, 1)} className="h-6 w-6 rounded bg-foam text-grounds">+</button>
-                    </div>
-                    <span className="ml-3 w-20 text-right font-mono text-grounds">
-                      {baht(Number(l.item.price) * l.qty)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <div className="mt-4 flex items-baseline justify-between">
-              <span className="text-sm text-grounds/60">รวม</span>
-              <span className="font-display text-3xl text-grounds">{baht(total)}</span>
+        {/* ขวา: ตะกร้า — เริ่มแถวเดียวกับการ์ดเมนู */}
+        <aside className="lg:sticky lg:top-4 lg:col-start-2 lg:row-start-2 lg:self-start">
+          <div className="card flex flex-col">
+            <div className="flex items-center justify-between border-b border-line px-4 py-3">
+              <h2 className="font-bold text-ink">รายการสั่ง</h2>
+              {lines.length > 0 && (
+                <button onClick={clearCart} className="text-sm text-muted transition-colors hover:text-coral">
+                  ล้างทั้งหมด
+                </button>
+              )}
             </div>
 
-            <button
-              onClick={submit}
-              disabled={lines.length === 0 || submitting}
-              className="mt-4 w-full rounded bg-marigold py-3 font-medium text-grounds transition-transform duration-100 active:scale-95 disabled:opacity-40"
-            >
-              {submitting ? 'กำลังสั่ง…' : 'ยืนยันสั่ง'}
-            </button>
+            <div className="lg:max-h-[52vh] lg:overflow-y-auto">
+              {lines.length === 0 ? (
+                <p className="px-4 py-12 text-center text-sm text-muted">ยังไม่มีรายการ</p>
+              ) : (
+                lines.map((l) => (
+                  <div key={l.item.id} className="flex gap-3 border-b border-line px-4 py-3 last:border-b-0">
+                    <div className="w-12 shrink-0">
+                      <MenuImage imageUrl={l.item.image_url} category={l.item.category} size="sm" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="line-clamp-1 text-sm font-medium text-ink">{l.item.name}</span>
+                        <button
+                          onClick={() => removeLine(l.item.id)}
+                          aria-label={`ลบ ${l.item.name}`}
+                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-coral text-paper transition-transform duration-100 active:scale-90"
+                        >
+                          <IconTrash />
+                        </button>
+                      </div>
+                      <div className="mt-1.5 flex items-center justify-between">
+                        <span className="text-sm font-bold tabular-nums text-ink">
+                          {baht(Number(l.item.price) * l.qty)}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => changeQty(l.item.id, -1)}
+                            className="h-7 w-7 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
+                          >
+                            −
+                          </button>
+                          <span className="w-7 text-center text-sm tabular-nums text-ink">{l.qty}</span>
+                          <button
+                            onClick={() => changeQty(l.item.id, 1)}
+                            className="h-7 w-7 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="border-t border-line p-4">
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted">ยอดรวม{totalQty > 0 ? ` · ${totalQty} ชิ้น` : ''}</span>
+                <span className="text-2xl font-bold tabular-nums text-ink">{baht(total)}</span>
+              </div>
+              <button
+                onClick={submit}
+                disabled={lines.length === 0 || submitting}
+                className="mt-3 w-full rounded-lg bg-amber py-3 font-medium text-ink transition-transform duration-100 active:scale-95 disabled:opacity-40"
+              >
+                {submitting ? 'กำลังสั่ง…' : 'ยืนยันสั่ง'}
+              </button>
+            </div>
           </div>
         </aside>
       </div>
@@ -192,29 +332,29 @@ const Order = ({ embedded = false }) => {
       {/* popup เลือกจำนวน + โชว์รูป ก่อนเพิ่มลงตะกร้า */}
       {picking && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-grounds/40 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
           onClick={() => setPicking(null)}
         >
-          <div className="ticket w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
+          <div className="card w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto w-40">
               <MenuImage imageUrl={picking.image_url} category={picking.category} />
             </div>
             <div className="mt-3 text-center">
-              <div className="font-medium text-grounds">{picking.name}</div>
-              <div className="font-display text-2xl text-grounds">{baht(picking.price)}</div>
+              <div className="font-medium text-ink">{picking.name}</div>
+              <div className="text-xl font-bold tabular-nums text-ink">{baht(picking.price)}</div>
             </div>
 
             <div className="mt-4 flex items-center justify-center gap-5">
               <button
-                onClick={() => setPickQty((q) => Math.max(1, q - 1))}
-                className="h-10 w-10 rounded-full bg-foam text-xl text-grounds transition-transform duration-100 active:scale-90"
+                onClick={() => setPickQty((n) => Math.max(1, n - 1))}
+                className="h-10 w-10 rounded-lg border border-line text-xl text-ink transition-transform duration-100 active:scale-90"
               >
                 −
               </button>
-              <span className="w-10 text-center font-mono text-2xl text-grounds">{pickQty}</span>
+              <span className="w-10 text-center text-2xl font-bold tabular-nums text-ink">{pickQty}</span>
               <button
-                onClick={() => setPickQty((q) => q + 1)}
-                className="h-10 w-10 rounded-full bg-foam text-xl text-grounds transition-transform duration-100 active:scale-90"
+                onClick={() => setPickQty((n) => n + 1)}
+                className="h-10 w-10 rounded-lg border border-line text-xl text-ink transition-transform duration-100 active:scale-90"
               >
                 +
               </button>
@@ -223,13 +363,13 @@ const Order = ({ embedded = false }) => {
             <div className="mt-5 flex gap-2">
               <button
                 onClick={() => setPicking(null)}
-                className="flex-1 rounded px-4 py-2 text-sm text-grounds/60 hover:text-grounds"
+                className="flex-1 rounded-lg px-4 py-2 text-sm text-muted hover:text-ink"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={confirmAdd}
-                className="flex-1 rounded bg-marigold py-2.5 text-sm font-medium text-grounds transition-transform duration-100 active:scale-95"
+                className="flex-1 rounded-lg bg-amber py-2.5 text-sm font-medium text-ink transition-transform duration-100 active:scale-95"
               >
                 เพิ่ม · {baht(Number(picking.price) * pickQty)}
               </button>
@@ -240,23 +380,26 @@ const Order = ({ embedded = false }) => {
     </>
   );
 
-  // ฝังในหน้า admin — ใช้ h1 แบบเดียวกับหน้า admin อื่น ไม่มี gear
-  if (embedded) {
-    return (
-      <>
-        <h1 className="mb-4 font-display text-2xl text-grounds">เมนู</h1>
-        {grid}
-      </>
-    );
-  }
+  // ฝังในหน้า admin — ไม่ต้องมีหัวข้อหน้าซ้ำ เพราะมี "เมนู" คู่กับช่องค้นหาอยู่แล้ว
+  if (embedded) return body;
 
-  // หน้า public แบบเต็มจอ — มีหัวข้อ + ไอคอนลับเข้า admin
+  // หน้า public แบบเต็มจอ — มีแถบบนชื่อร้าน + วันเวลา
   return (
-    <div className="min-h-screen bg-foam">
-      <header className="px-6 py-4">
-        <h1 className="font-display text-2xl text-grounds">สั่งเครื่องดื่ม</h1>
+    <div className="min-h-screen bg-canvas">
+      <header className="border-b border-line bg-paper">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-paper">☕</div>
+          <div className="font-bold text-ink">{SHOP_NAME}</div>
+          <span className="mr-auto flex items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-sm text-ink">
+            <span className="h-1.5 w-1.5 rounded-full bg-matcha" />
+            เปิดให้บริการ
+          </span>
+          <span className="rounded-lg border border-line px-3 py-1.5 text-sm tabular-nums text-muted">
+            {clockLabel}
+          </span>
+        </div>
       </header>
-      {grid}
+      {body}
     </div>
   );
 };

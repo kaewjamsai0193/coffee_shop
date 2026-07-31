@@ -1,27 +1,27 @@
-// รูปเมนู: กรอบ 1:1 เสมอ (Design.md §7). ไม่มีรูป → fallback emoji + สีตามหมวด
+// รูปเมนู: กรอบ 1:1 เสมอ (Design.md §7). ไม่มีรูป → fallback emoji บนพื้น surface
 const FALLBACK = {
-  'กาแฟสด': { emoji: '☕', bg: 'bg-grounds/10', fg: 'text-grounds' },
-  'เย็น': { emoji: '🧊', bg: 'bg-matcha/10', fg: 'text-matcha' },
-  'ปั่น': { emoji: '🥤', bg: 'bg-marigold/15', fg: 'text-marigold' },
+  'กาแฟสด': '☕',
+  'เย็น': '🧊',
+  'ปั่น': '🥤',
 };
 
-const MenuImage = ({ imageUrl, category, className = '' }) => {
+// size: 'lg' = การ์ดเมนู/popup, 'sm' = รูปย่อในตะกร้า
+const MenuImage = ({ imageUrl, category, className = '', size = 'lg' }) => {
   if (imageUrl) {
     return (
       <img
         src={imageUrl}
         alt=""
-        className={`aspect-square w-full rounded object-cover ${className}`}
+        className={`aspect-square w-full rounded-lg object-cover ${className}`}
       />
     );
   }
 
-  const fb = FALLBACK[category] || FALLBACK['กาแฟสด'];
   return (
     <div
-      className={`flex aspect-square w-full items-center justify-center rounded ${fb.bg} ${className}`}
+      className={`flex aspect-square w-full items-center justify-center rounded-lg bg-surface ${className}`}
     >
-      <span className={`text-5xl ${fb.fg}`}>{fb.emoji}</span>
+      <span className={size === 'sm' ? 'text-xl' : 'text-5xl'}>{FALLBACK[category] || '☕'}</span>
     </div>
   );
 };
