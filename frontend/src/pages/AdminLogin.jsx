@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../components/Toast.jsx';
 
 const AdminLogin = () => {
-  const { login, isAdmin } = useAuth();
+  const { login, isAdmin, sessionExpired } = useAuth();
   const { show } = useToast();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -37,6 +37,12 @@ const AdminLogin = () => {
       <form onSubmit={submit} className="ticket w-full max-w-sm p-6">
         <h1 className="mb-1 font-display text-2xl text-grounds">เข้าสู่ระบบผู้ดูแล</h1>
         <p className="mb-5 text-sm text-grounds/50">สำหรับเจ้าของร้าน/ผู้จัดการเท่านั้น</p>
+
+        {sessionExpired && (
+          <div className="mb-5 rounded border border-cherry/25 bg-cherry/10 px-3 py-2 text-sm text-cherry">
+            เซสชันหมดอายุแล้ว กรุณาเข้าสู่ระบบใหม่
+          </div>
+        )}
 
         <label className="mb-1 block text-sm text-grounds/70">ชื่อผู้ใช้</label>
         <input

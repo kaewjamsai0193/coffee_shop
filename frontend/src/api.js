@@ -4,6 +4,15 @@ const BASE = '/api';
 
 const getToken = () => localStorage.getItem('token');
 
+// แจ้ง AuthContext เมื่อ backend ตอบ 401 บน endpoint ที่ต้องใช้สิทธิ์ = เซสชันหมดอายุ
+let unauthorizedHandler = null;
+export const onUnauthorized = (fn) => {
+  unauthorizedHandler = fn;
+  return () => {
+    if (unauthorizedHandler === fn) unauthorizedHandler = null;
+  };
+};
+
 const request = async (path, { method = 'GET', body, auth = false, isForm = false } = {}) => {
   const headers = {};
   if (auth) headers.Authorization = `Bearer ${getToken()}`;
@@ -17,6 +26,8 @@ const request = async (path, { method = 'GET', body, auth = false, isForm = fals
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
+    // เช็ก auth ด้วย เพื่อไม่ให้ 401 ตอน login รหัสผิดถูกมองว่าเซสชันหมดอายุ
+    if (res.status === 401 && auth) unauthorizedHandler?.();
     throw new Error(data.error || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
   }
   return data;
