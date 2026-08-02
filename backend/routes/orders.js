@@ -8,7 +8,7 @@ const router = express.Router();
 const formatCode = (id) => `ORD-${String(id).padStart(8, '0')}`;
 
 // POST /orders — public — สร้างออเดอร์ (ไม่ต้อง login)
-// body: { items: [{ menu_item_id, qty }] }
+// body: { items: [{ menu_item_id, qty, addon_ids?: [id] }] }
 router.post('/', async (req, res, next) => {
   const client = await pool.connect();
   try {
@@ -42,10 +42,41 @@ router.post('/', async (req, res, next) => {
       if (!mi) {
         throw Object.assign(new Error('มีเมนูที่ไม่พร้อมขายอยู่ในตะกร้า'), { status: 400 });
       }
+
+      // add-on: ดึงชื่อ+ราคาปัจจุบันมา snapshot เช่นเดียวกับเมนู และกัน add-on ที่ปิดขาย
+      let addons = [];
+      if (line.addon_ids != null) {
+        if (!Array.isArray(line.addon_ids) || line.addon_ids.length > 20) {
+          throw Object.assign(new Error('รายการเพิ่มพิเศษไม่ถูกต้อง'), { status: 400 });
+        }
+        const ids = [...new Set(line.addon_ids.map((x) => parseInt(x, 10)))];
+        if (ids.some((x) => !Number.isInteger(x) || x < 1)) {
+          throw Object.assign(new Error('รายการเพิ่มพิเศษไม่ถูกต้อง'), { status: 400 });
+        }
+        if (ids.length > 0) {
+          // add-on ต้องเป็นตัวที่เมนูนั้นเปิดใช้จริง (กันสลับ add-on ข้ามเมนู)
+          const found = (
+            await client.query(
+              `SELECT a.id, a.name, a.price
+               FROM addons a
+               JOIN menu_item_addons ma ON ma.addon_id = a.id
+               WHERE a.id = ANY($1) AND ma.menu_item_id = $2
+               ORDER BY a.id`,
+              [ids, line.menu_item_id]
+            )
+          ).rows;
+          if (found.length !== ids.length) {
+            throw Object.assign(new Error('มีรายการเพิ่มพิเศษที่ไม่พร้อมขายอยู่ในตะกร้า'), { status: 400 });
+          }
+          addons = found.map((a) => ({ name: a.name, price: Number(a.price) }));
+        }
+      }
+      const addonsTotal = addons.reduce((s, a) => s + a.price, 0);
+
       await client.query(
-        `INSERT INTO order_items (order_id, menu_item_id, name_snapshot, price, qty)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [order.id, line.menu_item_id, mi.name, mi.price, qty]
+        `INSERT INTO order_items (order_id, menu_item_id, name_snapshot, price, qty, addons, addons_total)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [order.id, line.menu_item_id, mi.name, mi.price, qty, JSON.stringify(addons), addonsTotal]
       );
     }
 
@@ -67,10 +98,11 @@ router.get('/', requireAdmin, async (req, res, next) => {
     const { rows } = await query(
       `SELECT o.id, o.status, o.created_at, o.completed_at,
               COALESCE(json_agg(
-                json_build_object('name', oi.name_snapshot, 'price', oi.price, 'qty', oi.qty)
+                json_build_object('name', oi.name_snapshot, 'price', oi.price, 'qty', oi.qty,
+                                  'addons', oi.addons, 'addons_total', oi.addons_total)
                 ORDER BY oi.id
               ) FILTER (WHERE oi.id IS NOT NULL), '[]') AS items,
-              COALESCE(SUM(oi.price * oi.qty), 0) AS total
+              COALESCE(SUM((oi.price + oi.addons_total) * oi.qty), 0) AS total
        FROM orders o
        LEFT JOIN order_items oi ON oi.order_id = o.id
        WHERE o.status = $1

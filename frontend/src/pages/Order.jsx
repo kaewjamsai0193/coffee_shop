@@ -31,11 +31,13 @@ const Order = ({ embedded = false }) => {
   const [menu, setMenu] = useState([]);
   const [tab, setTab] = useState(ALL);
   const [q, setQ] = useState('');
-  const [cart, setCart] = useState({}); // { [id]: { item, qty } }
+  // ตะกร้าแยกบรรทัดตามชุด add-on — key = `${itemId}|${addonIds เรียงแล้ว}`
+  const [cart, setCart] = useState({}); // { [key]: { item, qty, addons: [{id,name,price}] } }
   const [bumped, setBumped] = useState(null); // id ที่เพิ่ง +1 (ให้ badge เด้ง)
   const [submitting, setSubmitting] = useState(false);
   const [picking, setPicking] = useState(null); // เมนูที่กำลังเลือกจำนวนใน popup
   const [pickQty, setPickQty] = useState(1);
+  const [pickAddons, setPickAddons] = useState([]); // id ของ add-on ที่ติ๊กใน popup
   const [clock, setClock] = useState(() => new Date());
 
   useEffect(() => {
@@ -76,42 +78,69 @@ const Order = ({ embedded = false }) => {
     );
   }, [menu, tab, q]);
 
-  const lines = Object.values(cart);
-  const total = lines.reduce((sum, l) => sum + Number(l.item.price) * l.qty, 0);
+  // ราคาต่อแก้ว = ราคาเมนู + add-on ที่เลือก
+  const unitPrice = (l) =>
+    Number(l.item.price) + l.addons.reduce((s, a) => s + Number(a.price), 0);
+
+  const lines = Object.entries(cart).map(([key, l]) => ({ key, ...l }));
+  const total = lines.reduce((sum, l) => sum + unitPrice(l) * l.qty, 0);
   const totalQty = lines.reduce((sum, l) => sum + l.qty, 0);
 
-  const addToCartQty = (item, qty) => {
-    setCart((c) => ({ ...c, [item.id]: { item, qty: (c[item.id]?.qty || 0) + qty } }));
+  // จำนวนรวมต่อเมนู (นับทุกบรรทัดของเมนูนั้น ไม่สน add-on) — ใช้กับ badge บนการ์ด
+  const qtyByItem = useMemo(() => {
+    const m = {};
+    lines.forEach((l) => {
+      m[l.item.id] = (m[l.item.id] || 0) + l.qty;
+    });
+    return m;
+  }, [cart]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const addToCartQty = (item, qty, selAddons = []) => {
+    const key = `${item.id}|${selAddons.map((a) => a.id).sort((a, b) => a - b).join('.')}`;
+    setCart((c) => ({
+      ...c,
+      [key]: { item, qty: (c[key]?.qty || 0) + qty, addons: selAddons },
+    }));
     setBumped(item.id);
     setTimeout(() => setBumped(null), 400);
   };
 
-  // แตะการ์ด → เปิด popup โชว์รูป + เลือกจำนวน (เริ่มที่ 1)
+  // แตะการ์ด → เปิด popup โชว์รูป + เลือกจำนวน/add-on (เริ่มที่ 1, ไม่ติ๊ก add-on)
   const selectItem = (item) => {
     setPickQty(1);
+    setPickAddons([]);
     setPicking(item);
   };
 
+  const toggleAddon = (id) =>
+    setPickAddons((sel) => (sel.includes(id) ? sel.filter((x) => x !== id) : [...sel, id]));
+
+  // ราคาต่อแก้วใน popup — คิด add-on ที่ติ๊กไว้ด้วย ให้เลขบนหัวขยับตามทันทีเหมือนปุ่มเพิ่ม
+  const pickedAddons = (picking?.addons || []).filter((a) => pickAddons.includes(a.id));
+  const pickUnit = picking
+    ? Number(picking.price) + pickedAddons.reduce((s, a) => s + Number(a.price), 0)
+    : 0;
+
   const confirmAdd = () => {
-    addToCartQty(picking, pickQty);
+    addToCartQty(picking, pickQty, pickedAddons);
     setPicking(null);
   };
 
-  const changeQty = (id, delta) => {
+  const changeQty = (key, delta) => {
     setCart((c) => {
-      const qty = (c[id]?.qty || 0) + delta;
+      const qty = (c[key]?.qty || 0) + delta;
       if (qty <= 0) {
-        const { [id]: _, ...rest } = c;
+        const { [key]: _, ...rest } = c;
         return rest;
       }
-      return { ...c, [id]: { ...c[id], qty } };
+      return { ...c, [key]: { ...c[key], qty } };
     });
   };
 
   // ลบทีละรายการไม่ต้องถามยืนยัน (กด − จนหมดก็ได้ผลเดียวกัน) แต่ล้างทั้งตะกร้าต้องถาม
-  const removeLine = (id) =>
+  const removeLine = (key) =>
     setCart((c) => {
-      const { [id]: _, ...rest } = c;
+      const { [key]: _, ...rest } = c;
       return rest;
     });
 
@@ -136,9 +165,16 @@ const Order = ({ embedded = false }) => {
         <div>
           <ul className="mb-2 space-y-1">
             {lines.map((l) => (
-              <li key={l.item.id} className="flex justify-between">
-                <span>{l.item.name} × {l.qty}</span>
-                <span className="tabular-nums">{baht(Number(l.item.price) * l.qty)}</span>
+              <li key={l.key} className="flex justify-between gap-2">
+                <span>
+                  {l.item.name} <span className="tabular-nums">×{l.qty}</span>
+                  {l.addons.map((a) => (
+                    <span key={a.id} className="block pl-3 text-xs text-muted">
+                      - {a.name}
+                    </span>
+                  ))}
+                </span>
+                <span className="shrink-0 tabular-nums">{baht(unitPrice(l) * l.qty)}</span>
               </li>
             ))}
           </ul>
@@ -153,7 +189,9 @@ const Order = ({ embedded = false }) => {
 
     setSubmitting(true);
     try {
-      const res = await api.createOrder(lines.map((l) => ({ menu_item_id: l.item.id, qty: l.qty })));
+      const res = await api.createOrder(
+        lines.map((l) => ({ menu_item_id: l.item.id, qty: l.qty, addon_ids: l.addons.map((a) => a.id) }))
+      );
       show(`สั่งสำเร็จ ${res.code}`);
       setCart({});
       refresh(); // เพิ่ม badge ทันทีเมื่อสั่งจากหน้า admin
@@ -224,13 +262,13 @@ const Order = ({ embedded = false }) => {
                   >
                     <div className="relative">
                       <MenuImage imageUrl={item.image_url} category={item.category} />
-                      {cart[item.id] && (
+                      {qtyByItem[item.id] > 0 && (
                         <span
                           className={`absolute right-2 top-2 flex h-6 min-w-6 items-center justify-center rounded-full bg-ink px-1.5 text-xs tabular-nums text-paper ${
                             bumped === item.id ? 'animate-bounce' : ''
                           }`}
                         >
-                          {cart[item.id].qty}
+                          {qtyByItem[item.id]}
                         </span>
                       )}
                     </div>
@@ -240,10 +278,10 @@ const Order = ({ embedded = false }) => {
                     </div>
                   </button>
 
-                  {/* กดเพิ่มทีละชิ้นโดยไม่ต้องเปิด popup */}
+                  {/* ทำงานเหมือนกดที่การ์ด — เปิด popup ให้เลือกจำนวน/add-on ก่อน */}
                   <button
-                    onClick={() => addToCartQty(item, 1)}
-                    aria-label={`เพิ่ม ${item.name}`}
+                    onClick={() => selectItem(item)}
+                    aria-label={`เลือก ${item.name}`}
                     className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-lg bg-ink text-lg text-paper transition-transform duration-100 active:scale-90"
                   >
                     +
@@ -271,7 +309,7 @@ const Order = ({ embedded = false }) => {
                 <p className="px-4 py-12 text-center text-sm text-muted">ยังไม่มีรายการ</p>
               ) : (
                 lines.map((l) => (
-                  <div key={l.item.id} className="flex gap-3 border-b border-line px-4 py-3 last:border-b-0">
+                  <div key={l.key} className="flex gap-3 border-b border-line px-4 py-3 last:border-b-0">
                     <div className="w-12 shrink-0">
                       <MenuImage imageUrl={l.item.image_url} category={l.item.category} size="sm" />
                     </div>
@@ -279,27 +317,33 @@ const Order = ({ embedded = false }) => {
                       <div className="flex items-start justify-between gap-2">
                         <span className="line-clamp-1 text-sm font-medium text-ink">{l.item.name}</span>
                         <button
-                          onClick={() => removeLine(l.item.id)}
+                          onClick={() => removeLine(l.key)}
                           aria-label={`ลบ ${l.item.name}`}
                           className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-coral text-paper transition-transform duration-100 active:scale-90"
                         >
                           <IconTrash />
                         </button>
                       </div>
+                      {l.addons.map((a) => (
+                        <div key={a.id} className="mt-0.5 flex justify-between gap-2 text-xs text-muted">
+                          <span className="truncate">- {a.name}</span>
+                          <span className="shrink-0 tabular-nums">{baht(a.price)}</span>
+                        </div>
+                      ))}
                       <div className="mt-1.5 flex items-center justify-between">
                         <span className="text-sm font-bold tabular-nums text-ink">
-                          {baht(Number(l.item.price) * l.qty)}
+                          {baht(unitPrice(l) * l.qty)}
                         </span>
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => changeQty(l.item.id, -1)}
+                            onClick={() => changeQty(l.key, -1)}
                             className="h-7 w-7 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
                           >
                             −
                           </button>
                           <span className="w-7 text-center text-sm tabular-nums text-ink">{l.qty}</span>
                           <button
-                            onClick={() => changeQty(l.item.id, 1)}
+                            onClick={() => changeQty(l.key, 1)}
                             className="h-7 w-7 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
                           >
                             +
@@ -341,8 +385,47 @@ const Order = ({ embedded = false }) => {
             </div>
             <div className="mt-3 text-center">
               <div className="font-medium text-ink">{picking.name}</div>
-              <div className="text-xl font-bold tabular-nums text-ink">{baht(picking.price)}</div>
+              <div className="text-xl font-bold tabular-nums text-ink">{baht(pickUnit)}</div>
+              {pickedAddons.length > 0 && (
+                <div className="text-xs tabular-nums text-muted">
+                  {baht(picking.price)} + เพิ่มพิเศษ {baht(pickUnit - Number(picking.price))}
+                </div>
+              )}
             </div>
+
+            {/* add-on ของเมนูนี้ — ติ๊กเลือกได้หลายรายการ คิดราคาต่อแก้ว */}
+            {picking.addons?.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-1.5 text-sm text-muted">เพิ่มพิเศษ</div>
+                <div className="max-h-36 space-y-1.5 overflow-y-auto">
+                  {picking.addons.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => toggleAddon(a.id)}
+                      className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-sm transition-colors ${
+                        pickAddons.includes(a.id)
+                          ? 'border-ink bg-surface font-medium text-ink'
+                          : 'border-line text-muted hover:text-ink'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span
+                          className={`flex h-4 w-4 items-center justify-center rounded border text-[10px] ${
+                            pickAddons.includes(a.id)
+                              ? 'border-ink bg-ink text-paper'
+                              : 'border-line'
+                          }`}
+                        >
+                          {pickAddons.includes(a.id) ? '✓' : ''}
+                        </span>
+                        {a.name}
+                      </span>
+                      <span className="tabular-nums">+{baht(a.price)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="mt-4 flex items-center justify-center gap-5">
               <button
@@ -371,7 +454,7 @@ const Order = ({ embedded = false }) => {
                 onClick={confirmAdd}
                 className="flex-1 rounded-lg bg-amber py-2.5 text-sm font-medium text-ink transition-transform duration-100 active:scale-95"
               >
-                เพิ่ม · {baht(Number(picking.price) * pickQty)}
+                เพิ่ม · {baht(pickUnit * pickQty)}
               </button>
             </div>
           </div>

@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS ingredient_purchases CASCADE;
 DROP TABLE IF EXISTS ingredients CASCADE;
 DROP TABLE IF EXISTS order_items CASCADE;
 DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS menu_item_addons CASCADE;
+DROP TABLE IF EXISTS addons CASCADE;
 DROP TABLE IF EXISTS menu_items CASCADE;
 DROP TABLE IF EXISTS admins CASCADE;
 
@@ -35,14 +37,33 @@ CREATE TABLE orders (
   completed_at TIMESTAMPTZ
 );
 
+-- คลัง Add-on กลาง (ชื่อ + ราคา) — admin จัดการที่ปุ่ม "จัดการ Add-on" หน้า Menu Manage
+-- ลบจริงได้ เพราะออเดอร์ snapshot ชื่อ+ราคาลง order_items.addons แล้ว ไม่มี FK ย้อนกลับ
+CREATE TABLE addons (
+  id         SERIAL PRIMARY KEY,
+  name       TEXT NOT NULL,
+  price      NUMERIC(8,2) NOT NULL CHECK (price >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- เมนูไหนเปิดใช้ add-on ตัวไหนบ้าง — admin ติ๊กเลือกในฟอร์มแก้ไขเมนูของแต่ละเมนู
+CREATE TABLE menu_item_addons (
+  menu_item_id INTEGER NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+  addon_id     INTEGER NOT NULL REFERENCES addons(id) ON DELETE CASCADE,
+  PRIMARY KEY (menu_item_id, addon_id)
+);
+
 -- รายการในออเดอร์ — snapshot ชื่อ+ราคา ณ เวลาสั่ง (ไม่อ้างอิงราคาปัจจุบันย้อนหลัง)
+-- addons = snapshot [{name, price}] ต่อแก้ว, addons_total = ผลรวมราคา add-on ต่อแก้ว
 CREATE TABLE order_items (
   id            SERIAL PRIMARY KEY,
   order_id      INTEGER NOT NULL REFERENCES orders(id),
   menu_item_id  INTEGER NOT NULL REFERENCES menu_items(id),
   name_snapshot TEXT NOT NULL,
   price         NUMERIC(8,2) NOT NULL CHECK (price >= 0),
-  qty           INTEGER NOT NULL CHECK (qty > 0)
+  qty           INTEGER NOT NULL CHECK (qty > 0),
+  addons        JSONB NOT NULL DEFAULT '[]',
+  addons_total  NUMERIC(8,2) NOT NULL DEFAULT 0 CHECK (addons_total >= 0)
 );
 
 -- คลังชื่อวัตถุดิบ — เติมอัตโนมัติเมื่อบันทึกชื่อใหม่ ใช้เป็นตัวเลือกในช่องชื่อ
@@ -65,6 +86,7 @@ CREATE TABLE ingredient_purchases (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE INDEX idx_menu_item_addons_addon_id ON menu_item_addons(addon_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_completed_at ON orders(completed_at);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
@@ -117,3 +139,5 @@ INSERT INTO menu_items (name, price, category) VALUES
   ('มะพร้าวปั่น', 40, 'ปั่น'),
   ('ชาไทยปั่น', 35, 'ปั่น'),
   ('ชาเขียวปั่น', 40, 'ปั่น');
+
+-- add-on ไม่มี seed ตั้งต้น — admin เพิ่มเองผ่านหน้าจัดการเมนู

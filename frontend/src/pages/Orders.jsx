@@ -86,11 +86,21 @@ const Orders = () => {
 
               <ul className="my-3 space-y-1.5">
                 {o.items.map((it, idx) => (
-                  <li key={idx} className="flex justify-between border-b border-line pb-1.5 text-sm last:border-b-0">
-                    <span className="text-ink">
-                      <span className="tabular-nums text-muted">{it.qty}×</span> {it.name}
-                    </span>
-                    <span className="tabular-nums text-muted">{baht(Number(it.price) * it.qty)}</span>
+                  <li key={idx} className="border-b border-line pb-1.5 text-sm last:border-b-0">
+                    <div className="flex justify-between gap-2">
+                      <span className="text-ink">
+                        {it.name} <span className="tabular-nums text-muted">×{it.qty}</span>
+                      </span>
+                      <span className="shrink-0 tabular-nums text-muted">
+                        {baht(Number(it.price) * it.qty)}
+                      </span>
+                    </div>
+                    {it.addons?.map((a, i) => (
+                      <div key={i} className="flex justify-between gap-2 pl-3 text-xs text-muted">
+                        <span className="truncate">- {a.name}</span>
+                        <span className="shrink-0 tabular-nums">{baht(Number(a.price) * it.qty)}</span>
+                      </div>
+                    ))}
                   </li>
                 ))}
               </ul>

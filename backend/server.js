@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 
 import authRoutes from './routes/auth.js';
 import menuRoutes from './routes/menu.js';
+import addonRoutes from './routes/addons.js';
 import orderRoutes from './routes/orders.js';
 import reportRoutes from './routes/reports.js';
 import purchaseRoutes from './routes/purchases.js';
@@ -27,6 +28,7 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 
 app.use('/auth', authRoutes);
 app.use('/menu', menuRoutes);
+app.use('/addons', addonRoutes);
 app.use('/orders', orderRoutes);
 app.use('/reports', reportRoutes);
 app.use('/purchases', purchaseRoutes);

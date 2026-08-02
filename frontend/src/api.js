@@ -43,6 +43,14 @@ export const api = {
   getAllMenu: () => request('/menu/all', { auth: true }),
   createMenu: (formData) => request('/menu', { method: 'POST', body: formData, isForm: true, auth: true }),
   updateMenu: (id, formData) => request(`/menu/${id}`, { method: 'PATCH', body: formData, isForm: true, auth: true }),
+  setMenuAddons: (id, addonIds) =>
+    request(`/menu/${id}/addons`, { method: 'PUT', body: { addon_ids: addonIds }, auth: true }),
+
+  // คลัง add-on กลาง
+  getAddons: () => request('/addons', { auth: true }),
+  createAddon: (body) => request('/addons', { method: 'POST', body, auth: true }),
+  updateAddon: (id, body) => request(`/addons/${id}`, { method: 'PATCH', body, auth: true }),
+  deleteAddon: (id) => request(`/addons/${id}`, { method: 'DELETE', auth: true }),
   getPendingOrders: () => request('/orders?status=pending', { auth: true }),
   getPendingCount: () => request('/orders/pending-count', { auth: true }),
   completeOrder: (id) => request(`/orders/${id}/complete`, { method: 'PATCH', auth: true }),

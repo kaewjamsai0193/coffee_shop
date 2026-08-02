@@ -16,7 +16,7 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
          COALESCE(SUM(item_total) FILTER (WHERE date_trunc('month', completed_at) = date_trunc('month', CURRENT_DATE)), 0) AS month,
          COALESCE(SUM(item_total) FILTER (WHERE date_trunc('year', completed_at) = date_trunc('year', CURRENT_DATE)), 0) AS year
        FROM (
-         SELECT o.completed_at, SUM(oi.price * oi.qty) AS item_total
+         SELECT o.completed_at, SUM((oi.price + oi.addons_total) * oi.qty) AS item_total
          FROM orders o
          JOIN order_items oi ON oi.order_id = o.id
          WHERE o.status = 'completed'
@@ -26,7 +26,7 @@ router.get('/summary', requireAdmin, async (req, res, next) => {
 
     // รายการ completed ล่าสุด 10 รายการ
     const recent = await query(
-      `SELECT o.id, o.completed_at, SUM(oi.price * oi.qty) AS total
+      `SELECT o.id, o.completed_at, SUM((oi.price + oi.addons_total) * oi.qty) AS total
        FROM orders o
        JOIN order_items oi ON oi.order_id = o.id
        WHERE o.status = 'completed'
@@ -72,9 +72,10 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
     // ออเดอร์ + รายการสินค้าในแต่ละออเดอร์
     const { rows } = await query(
       `SELECT o.id, o.completed_at,
-              SUM(oi.price * oi.qty) AS total,
+              SUM((oi.price + oi.addons_total) * oi.qty) AS total,
               json_agg(
-                json_build_object('name', oi.name_snapshot, 'qty', oi.qty, 'price', oi.price)
+                json_build_object('name', oi.name_snapshot, 'qty', oi.qty,
+                                  'price', oi.price, 'addons', oi.addons)
                 ORDER BY oi.id
               ) AS items
        FROM orders o
@@ -85,7 +86,7 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
       [ref]
     );
 
-    // สรุปยอดขายรายเมนู (ขายอะไรไปบ้างในช่วงนี้)
+    // สรุปยอดขายรายเมนู (ขายอะไรไปบ้างในช่วงนี้) — ราคาเมนูล้วน ไม่รวม add-on
     const bd = await query(
       `SELECT oi.name_snapshot AS name,
               SUM(oi.qty)::int AS qty,
@@ -103,7 +104,7 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
       code: formatCode(r.id),
       completed_at: r.completed_at,
       total: Number(r.total),
-      items: r.items.map((it) => ({ name: it.name, qty: it.qty, price: Number(it.price) })),
+      items: r.items.map((it) => ({ name: it.name, qty: it.qty, price: Number(it.price), addons: it.addons })),
     }));
 
     res.json({
@@ -143,7 +144,7 @@ router.get('/profit', requireAdmin, async (req, res, next) => {
     }
 
     const sales = await query(
-      `SELECT COALESCE(SUM(oi.price * oi.qty), 0) AS total, COUNT(DISTINCT o.id)::int AS orders
+      `SELECT COALESCE(SUM((oi.price + oi.addons_total) * oi.qty), 0) AS total, COUNT(DISTINCT o.id)::int AS orders
        FROM orders o
        JOIN order_items oi ON oi.order_id = o.id
        WHERE o.status = 'completed' AND ${salesCond}`,

@@ -185,11 +185,19 @@ const Dashboard = () => {
               </div>
               <ul className="mt-2 space-y-1 border-t border-line pt-2">
                 {r.items.map((it, idx) => (
-                  <li key={idx} className="flex justify-between text-xs text-muted">
-                    <span>
-                      <span className="tabular-nums">{it.qty}×</span> {it.name}
-                    </span>
-                    <span className="tabular-nums">{baht(it.price * it.qty)}</span>
+                  <li key={idx} className="text-xs text-muted">
+                    <div className="flex justify-between gap-2">
+                      <span>
+                        {it.name} <span className="tabular-nums">×{it.qty}</span>
+                      </span>
+                      <span className="shrink-0 tabular-nums">{baht(it.price * it.qty)}</span>
+                    </div>
+                    {it.addons?.map((a, i) => (
+                      <div key={i} className="flex justify-between gap-2 pl-3">
+                        <span className="truncate">- {a.name}</span>
+                        <span className="shrink-0 tabular-nums">{baht(Number(a.price) * it.qty)}</span>
+                      </div>
+                    ))}
                   </li>
                 ))}
               </ul>
