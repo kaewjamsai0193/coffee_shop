@@ -74,7 +74,7 @@
 
 ## Folder Structure
 ```
-coffee-pos/
+coffee_shop/
 ├── backend/
 │   ├── server.js
 │   ├── db.js

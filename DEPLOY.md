@@ -16,8 +16,8 @@
 
 ## 2. เอาโค้ดขึ้น VPS
 ```bash
-git clone <repo-url> coffee-pos    # หรือ scp โฟลเดอร์ขึ้นไป
-cd coffee-pos
+git clone https://github.com/kaewjamsai0193/coffee_shop.git
+cd coffee_shop
 ```
 
 ## 3. ตั้งค่า secrets
@@ -58,7 +58,7 @@ Internet ──▶ :80  frontend (nginx)
 
 ## อัปเดตเวอร์ชันใหม่
 ```bash
-cd ~/coffee-pos
+cd ~/coffee_shop
 git pull
 
 # สำรอง DB ก่อนเสมอ (โหลดค่าจาก .env มาใช้ในเชลล์)
@@ -99,13 +99,20 @@ docker compose -f docker-compose.prod.yml logs --tail 30 backend
 
 ## Backup / Restore
 ```bash
+cd ~/coffee_shop
+set -a; . ./.env; set +a          # ให้ $POSTGRES_USER / $POSTGRES_DB ใช้งานได้
+
 # backup ฐานข้อมูล
 docker compose -f docker-compose.prod.yml exec -T db \
-  pg_dump -U "$POSTGRES_USER" coffee_pos > backup_$(date +%F).sql
+  pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup_$(date +%F).sql
 
-# backup รูปเมนู
-docker run --rm -v coffee-pos_uploads:/data -v "$PWD":/out alpine \
+# backup รูปเมนู (ชื่อ volume = ชื่อโฟลเดอร์ + _uploads — เช็คด้วย docker volume ls)
+docker run --rm -v coffee_shop_uploads:/data -v "$PWD":/out alpine \
   tar czf /out/uploads_$(date +%F).tar.gz -C /data .
+
+# restore ฐานข้อมูล
+docker compose -f docker-compose.prod.yml exec -T db \
+  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < backup_YYYY-MM-DD.sql
 ```
 
 ## เพิ่ม HTTPS ทีหลัง (เมื่อมีโดเมน)
