@@ -57,43 +57,45 @@ Internet ──▶ :80  frontend (nginx)
 - ทุก service ตั้ง `restart: unless-stopped` — รีบูต VPS แล้วกลับมาเองอัตโนมัติ
 
 ## อัปเดตเวอร์ชันใหม่
-ข้อมูลใน volume ไม่หาย — แต่ **`schema.sql` รันเฉพาะตอน DB ว่างครั้งแรกเท่านั้น** ถ้าเวอร์ชันใหม่มีการเปลี่ยนโครงสร้างตาราง
-ต้องรันไฟล์ใน `backend/migrations/` เองก่อน `up -d --build` (ไม่งั้น backend ใหม่จะ query ตารางที่ยังไม่มี)
-
 ```bash
 cd ~/coffee-pos
 git pull
 
-# โหลดค่าจาก .env มาใช้ในเชลล์ (ให้ $POSTGRES_USER / $POSTGRES_DB ใช้งานได้)
+# สำรอง DB ก่อนเสมอ (โหลดค่าจาก .env มาใช้ในเชลล์)
 set -a; . ./.env; set +a
-
-# 1) สำรอง DB ก่อนเสมอ
 docker compose -f docker-compose.prod.yml exec -T db \
   pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup_$(date +%F).sql
 
-# 2) รัน migration ที่ยังไม่เคยรัน (ทุกไฟล์ปลอดภัยกับข้อมูลเดิมและรันซ้ำได้)
-for f in backend/migrations/*.sql; do
-  echo "== $f"
-  docker compose -f docker-compose.prod.yml exec -T db \
-    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < "$f"
-done
-
-# 3) build + restart
 docker compose -f docker-compose.prod.yml up -d --build
 
-# 4) ตรวจว่าขึ้นปกติ
-docker compose -f docker-compose.prod.yml ps
+# ตรวจว่าขึ้นปกติ
 curl -s localhost/api/health
 docker compose -f docker-compose.prod.yml logs --tail 30 backend
 ```
 
-> ถ้า migration พังกลางทาง ให้ restore จากไฟล์ backup:
+**ไม่ต้องรัน migration เอง** — `backend/scripts/migrate.js` รันอัตโนมัติทุกครั้งที่ backend สตาร์ท
+(ดู `backend/docker-entrypoint.sh`) ทุกคำสั่งเป็น `IF NOT EXISTS` จึงปลอดภัยกับข้อมูลเดิมและรันซ้ำได้
+จำเป็นต้องมีเพราะ `schema.sql` รันเฉพาะตอน DB ว่างครั้งแรกเท่านั้น ตารางใหม่จึงไม่เกิดเองบน DB ที่มีข้อมูลอยู่แล้ว
+
+> เพิ่มตาราง/คอลัมน์ใหม่ในอนาคต: เติม statement ต่อท้าย `STATEMENTS` ใน `backend/scripts/migrate.js`
+> (อย่าไปแก้ `schema.sql` อย่างเดียว เพราะเครื่องที่รันอยู่แล้วจะไม่ได้ของใหม่)
+
+> ถ้าอัปเดตแล้วพัง ให้ restore จากไฟล์ backup:
 > `docker compose -f docker-compose.prod.yml exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < backup_YYYY-MM-DD.sql`
 
-### migration ที่มีอยู่
-| ไฟล์ | เพิ่มอะไร |
-|---|---|
-| `2026-08-02_addons.sql` | ตาราง `addons`, `menu_item_addons` + คอลัมน์ `order_items.addons` / `addons_total` (ระบบ add-on) |
+## รหัสผ่าน admin
+- ตอน backend สตาร์ท `create-admin.js` จะ `INSERT ... ON CONFLICT (username) DO NOTHING`
+  → **ถ้ามี admin ชื่อนั้นอยู่แล้ว จะไม่แตะรหัสเดิมเลย** อัปเดต/รีสตาร์ทกี่รอบรหัสก็ไม่เปลี่ยน
+- แก้ `ADMIN_PASSWORD` ใน `.env` แล้ว restart **ไม่ทำให้รหัสของ user เดิมเปลี่ยน** (ใช้ได้เฉพาะตอนสร้างครั้งแรก)
+- เปลี่ยนรหัสของ admin ที่มีอยู่ ต้องอัปเดต hash ใน DB เอง:
+  ```bash
+  set -a; . ./.env; set +a
+  HASH=$(docker compose -f docker-compose.prod.yml exec -T backend \
+    node -e "require('bcrypt').hash(process.argv[1],10).then(h=>console.log(h))" 'รหัสใหม่')
+  docker compose -f docker-compose.prod.yml exec -T db \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+    -c "UPDATE admins SET password_hash='$HASH' WHERE username='$ADMIN_USERNAME';"
+  ```
 
 ## Backup / Restore
 ```bash

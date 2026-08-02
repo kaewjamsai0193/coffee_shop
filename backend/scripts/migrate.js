@@ -30,13 +30,34 @@ const STATEMENTS = [
 
   `CREATE INDEX IF NOT EXISTS idx_purchases_purchased_at ON ingredient_purchases(purchased_at)`,
   `CREATE INDEX IF NOT EXISTS idx_purchases_voided_at ON ingredient_purchases(voided_at)`,
+
+  // คลัง add-on กลาง (ชื่อ + ราคา) — admin จัดการที่ปุ่ม "จัดการ Add-on" หน้า Menu Manage
+  `CREATE TABLE IF NOT EXISTS addons (
+     id         SERIAL PRIMARY KEY,
+     name       TEXT NOT NULL,
+     price      NUMERIC(8,2) NOT NULL CHECK (price >= 0),
+     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+   )`,
+
+  // เมนูไหนเปิดใช้ add-on ตัวไหนบ้าง (ต้องมาหลัง addons เพราะอ้าง FK)
+  `CREATE TABLE IF NOT EXISTS menu_item_addons (
+     menu_item_id INTEGER NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+     addon_id     INTEGER NOT NULL REFERENCES addons(id) ON DELETE CASCADE,
+     PRIMARY KEY (menu_item_id, addon_id)
+   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_menu_item_addons_addon_id ON menu_item_addons(addon_id)`,
+
+  // snapshot add-on ต่อบรรทัดออเดอร์ — ราคาไม่เปลี่ยนย้อนหลังแม้แก้/ลบ add-on ทีหลัง
+  `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'`,
+  `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS addons_total NUMERIC(8,2) NOT NULL DEFAULT 0 CHECK (addons_total >= 0)`,
 ];
 
 const run = async () => {
   for (const sql of STATEMENTS) {
     await pool.query(sql);
   }
-  console.log('✅ migration เรียบร้อย (ตารางวัตถุดิบพร้อมใช้งาน)');
+  console.log('✅ migration เรียบร้อย (ตารางวัตถุดิบ + add-on พร้อมใช้งาน)');
   await pool.end();
 };
 
