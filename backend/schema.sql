@@ -23,7 +23,7 @@ CREATE TABLE menu_items (
   id           SERIAL PRIMARY KEY,
   name         TEXT NOT NULL,
   price        NUMERIC(8,2) NOT NULL CHECK (price >= 0),
-  category     TEXT NOT NULL CHECK (category IN ('กาแฟสด', 'เย็น', 'ปั่น')),
+  category     TEXT NOT NULL CHECK (category IN ('กาแฟสด', 'เย็น', 'ปั่น', 'แอลกอฮอล์', 'อื่นๆ')),
   image_url    TEXT,                       -- NULL = ใช้ fallback emoji/สี ตามหมวด
   is_available BOOLEAN NOT NULL DEFAULT true,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()

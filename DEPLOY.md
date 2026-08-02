@@ -74,7 +74,7 @@ docker compose -f docker-compose.prod.yml logs --tail 30 backend
 ```
 
 **ไม่ต้องรัน migration เอง** — `backend/scripts/migrate.js` รันอัตโนมัติทุกครั้งที่ backend สตาร์ท
-(ดู `backend/docker-entrypoint.sh`) ทุกคำสั่งเป็น `IF NOT EXISTS` จึงปลอดภัยกับข้อมูลเดิมและรันซ้ำได้
+(ดู `backend/docker-entrypoint.sh`) ทุกคำสั่งเขียนแบบรันซ้ำได้ (`IF NOT EXISTS` หรือ drop-then-add) จึงปลอดภัยกับข้อมูลเดิม
 จำเป็นต้องมีเพราะ `schema.sql` รันเฉพาะตอน DB ว่างครั้งแรกเท่านั้น ตารางใหม่จึงไม่เกิดเองบน DB ที่มีข้อมูลอยู่แล้ว
 
 > เพิ่มตาราง/คอลัมน์ใหม่ในอนาคต: เติม statement ต่อท้าย `STATEMENTS` ใน `backend/scripts/migrate.js`

@@ -7,7 +7,7 @@ import MenuImage from '../components/MenuImage.jsx';
 
 const SHOP_NAME = 'Coffee POS';
 const ALL = 'ทั้งหมด';
-const CAT_ORDER = ['กาแฟสด', 'เย็น', 'ปั่น']; // ลำดับที่อยากให้ชิปเรียง หมวดอื่นต่อท้ายอัตโนมัติ
+const CAT_ORDER = ['กาแฟสด', 'เย็น', 'ปั่น', 'แอลกอฮอล์', 'อื่นๆ']; // ลำดับที่อยากให้ชิปเรียง หมวดอื่นต่อท้ายอัตโนมัติ
 const baht = (n) => Number(n).toFixed(2) + ' ฿';
 
 const IconSearch = () => (

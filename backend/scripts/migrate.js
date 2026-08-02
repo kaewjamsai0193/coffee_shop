@@ -51,6 +51,12 @@ const STATEMENTS = [
   // snapshot add-on ต่อบรรทัดออเดอร์ — ราคาไม่เปลี่ยนย้อนหลังแม้แก้/ลบ add-on ทีหลัง
   `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS addons JSONB NOT NULL DEFAULT '[]'`,
   `ALTER TABLE order_items ADD COLUMN IF NOT EXISTS addons_total NUMERIC(8,2) NOT NULL DEFAULT 0 CHECK (addons_total >= 0)`,
+
+  // เพิ่มหมวด 'แอลกอฮอล์' + 'อื่นๆ' — DB เดิม CHECK ไว้แค่ 3 หมวด ต้อง drop ก่อนแล้วสร้างใหม่
+  // (drop-then-add จึงรันซ้ำได้ปลอดภัย ไม่ต้องเช็คว่ามี constraint อยู่ไหม)
+  `ALTER TABLE menu_items DROP CONSTRAINT IF EXISTS menu_items_category_check`,
+  `ALTER TABLE menu_items ADD CONSTRAINT menu_items_category_check
+     CHECK (category IN ('กาแฟสด', 'เย็น', 'ปั่น', 'แอลกอฮอล์', 'อื่นๆ'))`,
 ];
 
 const run = async () => {

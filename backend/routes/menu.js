@@ -5,7 +5,7 @@ import { uploadMenuImage, processAndSaveImage } from '../middleware/upload.js';
 
 const router = express.Router();
 
-const CATEGORIES = ['กาแฟสด', 'เย็น', 'ปั่น'];
+const CATEGORIES = ['กาแฟสด', 'เย็น', 'ปั่น', 'แอลกอฮอล์', 'อื่นๆ'];
 
 // ราคาต้องเป็นตัวเลข 0 ถึงเพดานของ NUMERIC(8,2) — กันค่าที่ทำให้ DB โยน error
 const validPrice = (p) => Number.isFinite(Number(p)) && Number(p) >= 0 && Number(p) <= 999999.99;

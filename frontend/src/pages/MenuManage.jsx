@@ -4,7 +4,7 @@ import { useToast } from '../components/Toast.jsx';
 import { useConfirm } from '../components/Confirm.jsx';
 import MenuImage from '../components/MenuImage.jsx';
 
-const CATEGORIES = ['กาแฟสด', 'เย็น', 'ปั่น'];
+const CATEGORIES = ['กาแฟสด', 'เย็น', 'ปั่น', 'แอลกอฮอล์', 'อื่นๆ'];
 const baht = (n) => Number(n).toFixed(2) + ' ฿';
 
 // fieldBase ไม่มีความกว้างในตัว — ใช้กับช่องที่กำหนด w-* เอง (ถ้าพ่วง w-full มาด้วยมันจะชนะ w-28 แล้วดันของข้างๆ ทะลุออก)

@@ -43,7 +43,8 @@
 - admin เพิ่ม / แก้ไข (ชื่อ, ราคา, หมวด, รูป) / ปิดขาย เมนูได้ผ่านหน้า **Menu Manage**
 - **ห้ามลบเมนูออกจาก DB** (จะทำให้ประวัติออเดอร์เก่าเสีย) — ใช้ `is_available = false` เพื่อ "ปิดขาย" แทน
 - เมนูที่ `is_available = false` จะไม่โผล่ในหน้าสั่งสินค้า แต่ยังอยู่ใน DB และในออเดอร์เก่า
-- ข้อมูลเมนูตั้งต้น seed จาก `Menu.md` ลง `schema.sql` (หมวด: กาแฟสด, เย็น, ปั่น)
+- ข้อมูลเมนูตั้งต้น seed จาก `Menu.md` ลง `schema.sql` (หมวด: กาแฟสด, เย็น, ปั่น, แอลกอฮอล์, อื่นๆ)
+- รายชื่อหมวดถูกฮาร์ดโค้ดไว้ **5 ที่** เพิ่มหมวดใหม่ต้องแก้ให้ครบ: `schema.sql` (CHECK), `scripts/migrate.js` (drop+add CHECK สำหรับ DB เดิม), `routes/menu.js` (`CATEGORIES`), `MenuManage.jsx` (`CATEGORIES`), `Order.jsx` (`CAT_ORDER`) + emoji fallback ใน `MenuImage.jsx`/`Design.md §7`
 
 ## Menu Images (ดู Design.md §7 สำหรับ visual spec)
 - เก็บเป็น **ไฟล์บนดิสก์** ที่ `backend/uploads/menu/` — DB เก็บแค่ `menu_items.image_url` (relative path เช่น `/uploads/menu/12.webp`)
