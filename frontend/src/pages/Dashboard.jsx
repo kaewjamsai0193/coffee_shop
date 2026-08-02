@@ -7,11 +7,29 @@ import ShowMore from '../components/ShowMore.jsx';
 
 const baht = (n) => Number(n).toFixed(2) + ' ฿';
 
+// วันที่ทุกจุดในหน้านี้เป็นตัวเลขล้วน วว/ดด/ปปปป (ไม่ใช้ชื่อเดือน/ชื่อวัน)
 const dateTimeOf = (ts) =>
-  new Date(ts).toLocaleString('th-TH', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  new Date(ts).toLocaleString('th-TH', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 const ORDERS_PREVIEW = 10; // แสดงเท่านี้ก่อน แล้วค่อยกด "ดูทั้งหมด"
 const MENU_PREVIEW = 10;
+const TREND_PREVIEW = 12; // 1 ปีมี 12 เดือน (ไม่เคยถูกตัด) ส่วนรายวันของเดือนจะตัดที่ 12 วันแรก
+
+// หัวข้อ/ป้ายของบล็อกยอดรวมย่อย ต่างกันตามว่าซอยเป็นวันหรือเดือน
+const TREND_TITLE = { day: 'ยอดรวมรายวัน', month: 'ยอดรวมรายเดือน' };
+const TREND_UNIT = { day: 'วัน', month: 'เดือน' };
+const trendLabelOf = (bucket, date) =>
+  new Date(date).toLocaleDateString('th-TH', {
+    ...(bucket === 'day' && { day: '2-digit' }), // รายเดือนเหลือแค่ ดด/ปปปป
+    month: '2-digit',
+    year: 'numeric',
+  });
 
 const Dashboard = () => {
   const { show } = useToast();
@@ -23,6 +41,7 @@ const Dashboard = () => {
   const [prev, setPrev] = useState(null); // ช่วงก่อนหน้า ใช้เทียบ
   const [showAllMenu, setShowAllMenu] = useState(false);
   const [showAllOrders, setShowAllOrders] = useState(false);
+  const [showAllTrend, setShowAllTrend] = useState(false);
 
   useEffect(() => {
     api.getReport().then(setSummary).catch((e) => show(e.message, 'error'));
@@ -35,6 +54,7 @@ const Dashboard = () => {
     setPrev(null);
     setShowAllMenu(false);
     setShowAllOrders(false);
+    setShowAllTrend(false);
 
     Promise.all([api.getSales(mode, refDate), api.getSales(mode, prevRefOf(mode, refDate))])
       .then(([cur, before]) => {
@@ -61,6 +81,11 @@ const Dashboard = () => {
   const maxMenuTotal = data?.breakdown?.[0]?.total || 0; // breakdown เรียงจากมากไปน้อยมาแล้ว
   const menuRows = data ? (showAllMenu ? data.breakdown : data.breakdown.slice(0, MENU_PREVIEW)) : [];
   const orderRows = data ? (showAllOrders ? data.orders : data.orders.slice(0, ORDERS_PREVIEW)) : [];
+
+  // ยอดรวมย่อย: หน้ารายเดือนซอยเป็นรายวัน, หน้ารายปีซอยเป็นรายเดือน (หน้ารายวันไม่มี)
+  const trend = data?.trend || [];
+  const trendBucket = data?.trendBucket;
+  const trendRows = showAllTrend ? trend : trend.slice(0, TREND_PREVIEW);
 
   const cards = [
     { key: 'day', label: 'วันนี้', value: summary?.today },
@@ -124,6 +149,46 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* ยอดรวมย่อยในช่วง (เดือน → รายวัน, ปี → รายเดือน) — กดแถวเพื่อเจาะเข้าไปดูต่อ */}
+      {trendBucket && (
+        <>
+          <div className="mb-2 mt-8 flex items-baseline justify-between">
+            <h2 className="text-lg font-bold text-ink">{TREND_TITLE[trendBucket]}</h2>
+            {trend.length > 0 && (
+              <span className="text-xs text-muted">
+                {trend.length} {TREND_UNIT[trendBucket]}ที่มียอดขาย
+              </span>
+            )}
+          </div>
+          <div className="card p-2">
+            <div className="divide-y divide-line">
+              {trend.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted">ยังไม่มียอดขายในช่วงเวลานี้</p>
+              ) : (
+                trendRows.map((t) => (
+                  <div key={t.date} className="flex items-center justify-between gap-2 px-2 py-2.5 text-sm">
+                    <span className="flex-1 truncate tabular-nums text-ink">
+                      {trendLabelOf(trendBucket, t.date)}
+                    </span>
+                    <span className="w-20 shrink-0 text-right tabular-nums text-muted">{t.count} บิล</span>
+                    <span className="w-28 shrink-0 text-right font-semibold tabular-nums text-ink">
+                      {baht(t.total)}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+            <ShowMore
+              expanded={showAllTrend}
+              onToggle={() => setShowAllTrend((v) => !v)}
+              total={trend.length}
+              limit={TREND_PREVIEW}
+              unit={TREND_UNIT[trendBucket]}
+            />
+          </div>
+        </>
+      )}
 
       {/* สรุปว่าขายอะไรไปบ้างในช่วงนี้ (รายเมนู) + แถบเทียบสัดส่วน */}
       <div className="mb-2 mt-8 flex items-baseline justify-between">

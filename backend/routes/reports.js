@@ -86,6 +86,24 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
       [ref]
     );
 
+    // ซอยยอดรวมย่อยในช่วง: เดือน → รายวัน, ปี → รายเดือน (วันเดียวไม่ต้องซอย)
+    // bucket มาจาก map คงที่ ไม่ใช่ค่าจากผู้ใช้ จึงต่อเข้า SQL ได้
+    const bucket = { month: 'day', year: 'month' }[period] || null;
+    const trend = bucket
+      ? await query(
+          // to_char ไม่ใช่ ::date เพราะ pg แปลง date เป็น Date ของ JS แล้ว JSON.stringify ทำให้เลื่อนวันตาม timezone
+          `SELECT to_char(date_trunc('${bucket}', o.completed_at), 'YYYY-MM-DD') AS bucket,
+                  COUNT(DISTINCT o.id)::int AS count,
+                  SUM((oi.price + oi.addons_total) * oi.qty) AS total
+           FROM orders o
+           JOIN order_items oi ON oi.order_id = o.id
+           WHERE o.status = 'completed' AND ${cond}
+           GROUP BY 1
+           ORDER BY 1`,
+          [ref]
+        )
+      : null;
+
     // สรุปยอดขายรายเมนู (ขายอะไรไปบ้างในช่วงนี้) — ราคาเมนูล้วน ไม่รวม add-on
     const bd = await query(
       `SELECT oi.name_snapshot AS name,
@@ -113,6 +131,8 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
       total: orders.reduce((s, o) => s + o.total, 0),
       count: orders.length,
       breakdown: bd.rows.map((r) => ({ name: r.name, qty: r.qty, total: Number(r.total) })),
+      trendBucket: bucket, // 'day' (ในหน้ารายเดือน) | 'month' (ในหน้ารายปี) | null
+      trend: trend ? trend.rows.map((r) => ({ date: r.bucket, count: r.count, total: Number(r.total) })) : [],
       orders,
     });
   } catch (err) {
