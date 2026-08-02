@@ -57,11 +57,43 @@ Internet ──▶ :80  frontend (nginx)
 - ทุก service ตั้ง `restart: unless-stopped` — รีบูต VPS แล้วกลับมาเองอัตโนมัติ
 
 ## อัปเดตเวอร์ชันใหม่
+ข้อมูลใน volume ไม่หาย — แต่ **`schema.sql` รันเฉพาะตอน DB ว่างครั้งแรกเท่านั้น** ถ้าเวอร์ชันใหม่มีการเปลี่ยนโครงสร้างตาราง
+ต้องรันไฟล์ใน `backend/migrations/` เองก่อน `up -d --build` (ไม่งั้น backend ใหม่จะ query ตารางที่ยังไม่มี)
+
 ```bash
+cd ~/coffee-pos
 git pull
+
+# โหลดค่าจาก .env มาใช้ในเชลล์ (ให้ $POSTGRES_USER / $POSTGRES_DB ใช้งานได้)
+set -a; . ./.env; set +a
+
+# 1) สำรอง DB ก่อนเสมอ
+docker compose -f docker-compose.prod.yml exec -T db \
+  pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB" > backup_$(date +%F).sql
+
+# 2) รัน migration ที่ยังไม่เคยรัน (ทุกไฟล์ปลอดภัยกับข้อมูลเดิมและรันซ้ำได้)
+for f in backend/migrations/*.sql; do
+  echo "== $f"
+  docker compose -f docker-compose.prod.yml exec -T db \
+    psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v ON_ERROR_STOP=1 < "$f"
+done
+
+# 3) build + restart
 docker compose -f docker-compose.prod.yml up -d --build
+
+# 4) ตรวจว่าขึ้นปกติ
+docker compose -f docker-compose.prod.yml ps
+curl -s localhost/api/health
+docker compose -f docker-compose.prod.yml logs --tail 30 backend
 ```
-ข้อมูลใน volume ไม่หาย (schema.sql รันเฉพาะตอน DB ยังว่างครั้งแรกเท่านั้น)
+
+> ถ้า migration พังกลางทาง ให้ restore จากไฟล์ backup:
+> `docker compose -f docker-compose.prod.yml exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < backup_YYYY-MM-DD.sql`
+
+### migration ที่มีอยู่
+| ไฟล์ | เพิ่มอะไร |
+|---|---|
+| `2026-08-02_addons.sql` | ตาราง `addons`, `menu_item_addons` + คอลัมน์ `order_items.addons` / `addons_total` (ระบบ add-on) |
 
 ## Backup / Restore
 ```bash
