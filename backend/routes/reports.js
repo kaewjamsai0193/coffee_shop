@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../db.js';
 import { requireAdmin } from '../middleware/auth.js';
+import { expenseBreakdown } from './expenses.js';
 
 const router = express.Router();
 
@@ -141,7 +142,8 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
 });
 
 // GET /reports/profit?period=day|month|year&date=YYYY-MM-DD — admin
-// กำไร = ยอดขาย (completed_at) − ต้นทุนวัตถุดิบ (purchased_at) ของช่วงเดียวกัน
+// กำไร = ยอดขาย (completed_at) − ต้นทุนวัตถุดิบ (purchased_at) − ค่าใช้จ่ายประจำ ของช่วงเดียวกัน
+// ค่าใช้จ่ายประจำผูกกับเดือนของบิล โหมดรายวันจึงเป็นค่าเฉลี่ยต่อวัน (ดู routes/expenses.js)
 router.get('/profit', requireAdmin, async (req, res, next) => {
   try {
     const period = req.query.period || 'day';
@@ -178,8 +180,11 @@ router.get('/profit', requireAdmin, async (req, res, next) => {
       [ref]
     );
 
+    const expenses = await expenseBreakdown(period, ref);
+
     const salesTotal = Number(sales.rows[0].total);
     const costTotal = Number(cost.rows[0].total);
+    const expenseTotal = expenses.reduce((s, e) => s + e.total, 0);
 
     res.json({
       period,
@@ -188,7 +193,9 @@ router.get('/profit', requireAdmin, async (req, res, next) => {
       orders: sales.rows[0].orders,
       cost: costTotal,
       purchaseItems: cost.rows[0].items,
-      profit: salesTotal - costTotal,
+      expenses: expenseTotal,
+      expenseBreakdown: expenses,
+      profit: salesTotal - costTotal - expenseTotal,
     });
   } catch (err) {
     next(err);

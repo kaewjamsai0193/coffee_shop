@@ -154,8 +154,6 @@ const Purchases = () => {
 
   return (
     <div>
-      <h1 className="mb-4 text-lg font-bold text-ink">ซื้อวัตถุดิบ</h1>
-
       {/* ── ฟอร์มบันทึก: หลายรายการต่อครั้ง ── */}
       <form onSubmit={save} className="card p-4">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">

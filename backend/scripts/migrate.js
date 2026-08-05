@@ -31,6 +31,21 @@ const STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_purchases_purchased_at ON ingredient_purchases(purchased_at)`,
   `CREATE INDEX IF NOT EXISTS idx_purchases_voided_at ON ingredient_purchases(voided_at)`,
 
+  // ค่าใช้จ่ายประจำ (ค่าน้ำ ค่าไฟ ค่าเช่า ฯลฯ) — ผูกกับ "เดือนของบิล" ไม่ใช่วันที่จ่ายจริง
+  // หน้ากำไรรายวันเฉลี่ยเอง (ยอด ÷ จำนวนวันในเดือน) กันกำไรดิ่งเฉพาะวันที่จ่ายบิล
+  `CREATE TABLE IF NOT EXISTS expenses (
+     id           SERIAL PRIMARY KEY,
+     kind         TEXT NOT NULL,
+     note         TEXT,
+     total        NUMERIC(10,2) NOT NULL CHECK (total >= 0),
+     period_month DATE NOT NULL,
+     voided_at    TIMESTAMPTZ,
+     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+   )`,
+
+  `CREATE INDEX IF NOT EXISTS idx_expenses_period_month ON expenses(period_month)`,
+  `CREATE INDEX IF NOT EXISTS idx_expenses_voided_at ON expenses(voided_at)`,
+
   // คลัง add-on กลาง (ชื่อ + ราคา) — admin จัดการที่ปุ่ม "จัดการ Add-on" หน้า Menu Manage
   `CREATE TABLE IF NOT EXISTS addons (
      id         SERIAL PRIMARY KEY,
@@ -63,7 +78,7 @@ const run = async () => {
   for (const sql of STATEMENTS) {
     await pool.query(sql);
   }
-  console.log('✅ migration เรียบร้อย (ตารางวัตถุดิบ + add-on พร้อมใช้งาน)');
+  console.log('✅ migration เรียบร้อย (ตารางวัตถุดิบ + add-on + ค่าใช้จ่ายประจำ พร้อมใช้งาน)');
   await pool.end();
 };
 

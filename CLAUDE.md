@@ -67,11 +67,24 @@
 - ในหน้า Orders/Dashboard **แต่ละบรรทัดโชว์ราคาของตัวเอง**: บรรทัดเมนู = `price × qty` (ราคาเมนูล้วน), บรรทัด add-on = `addon.price × qty` — ไปรวมกันที่บรรทัด "รวม" ของออเดอร์เท่านั้น ดังนั้น `/reports/sales` ต้องส่ง `items[].price` เป็นราคาเมนูล้วน (ห้ามบวก `addons_total` มาให้)
 - DB เดิมที่มีข้อมูลแล้วได้ตารางจาก `backend/scripts/migrate.js` ที่รันอัตโนมัติตอน backend สตาร์ท (ไม่ต้องรันเอง) — `schema.sql` ใช้กับ DB ใหม่เท่านั้น **เพิ่มตาราง/คอลัมน์ใหม่ต้องเติมทั้งสองที่**
 
+## ต้นทุน (หน้า `/admin/costs` — 2 แท็บ)
+หน้าเดียวรวมต้นทุนสองก้อนที่หน้ากำไรเอาไปหัก แยกแท็บเพราะคิดคนละแบบ (`pages/Costs.jsx` ห่อ `Purchases.jsx` + `Expenses.jsx` — ทั้งสองไฟล์ไม่มี `<h1>` ของตัวเอง หัวข้ออยู่ที่ Costs)
+- **วัตถุดิบ** (`ingredient_purchases`) — ผูกกับ `purchased_at` วันที่ซื้อจริง
+- **ค่าใช้จ่ายประจำ** (`expenses` — ค่าน้ำ ค่าไฟ ค่าเช่า ฯลฯ) — ผูกกับ `period_month` (วันที่ 1 ของ**เดือนที่บิลครอบคลุม**) ไม่ใช่วันที่จ่ายเงิน
+- เหตุผลที่ไม่ผูกกับวันที่จ่าย: บิลมาเดือนละครั้งแต่ค่าใช้จ่ายเกิดตลอดเดือน ถ้าผูกวันจ่ายกำไรของวันนั้นจะดิ่งผิดความจริง **ห้ามเปลี่ยนเป็นวันที่จ่ายโดยไม่ถาม**
+- การหักในหน้ากำไร: รายวัน = `ยอดบิลของเดือนนั้น ÷ จำนวนวันในเดือน` (ทุกวันในเดือนหักเท่ากัน) · รายเดือน = ยอดบิลเต็มของเดือนนั้น · รายปี = รวมทุกบิลในปีนั้น
+- สูตรเฉลี่ยอยู่ที่ `expenseBreakdown()` ใน `routes/expenses.js` ที่เดียว — `routes/reports.js` (`/profit`) import ไปใช้ **ห้ามเขียนสูตรซ้ำ** ตัวเลขสองหน้าจะได้ตรงกันเสมอ
+- ปัดเศษ 2 ตำแหน่ง**ต่อประเภท** แล้วค่อยรวม (breakdown จึงบวกได้เท่ากับยอดรวมที่โชว์เป๊ะ) — ผลข้างเคียงคือผลรวมรายวันทั้งเดือนอาจต่างจากยอดบิลจริงไม่เกินไม่กี่สตางค์
+- `kind` เป็น TEXT อิสระ ไม่มี CHECK — ตัวเลือกในช่องมาจาก `GET /expenses/kinds` (ประเภทที่เคยบันทึก) ผสมกับ `SUGGESTED_KINDS` ใน `Expenses.jsx` เพิ่มประเภทใหม่ไม่ต้อง migrate
+- ห้ามลบบิลทิ้ง ใช้ `voided_at` (`PATCH /expenses/:id/void`) เหมือน `ingredient_purchases`
+- `/admin/purchases` เดิม redirect ไป `/admin/costs` แล้ว
+
 ## Business Rules
 - ห้ามลบออเดอร์ทิ้ง ใช้สถานะ `cancelled` แทน — admin กด "ยกเลิก" ในหน้า Orders ได้ (`PATCH /orders/:id/cancel`), ออเดอร์ที่ยกเลิกไม่นับเป็นยอดขาย
 - ทุก action ที่มีผล (เลือกเมนู, ยืนยันสั่ง, เสร็จแล้ว, ยกเลิก) ต้องมี popup ยืนยันก่อน — ใช้ `useConfirm()` จาก `components/Confirm.jsx`
 - ราคาสินค้าคำนวณจาก `menu_items.price` ณ เวลาที่สั่ง แล้ว snapshot ลง `order_items.price` (ไม่อ้างอิงราคาปัจจุบันย้อนหลัง — สำคัญเพราะ admin แก้ราคาได้)
 - ยอดขายในหน้า Dashboard นับจาก `completed_at` เท่านั้น ไม่ใช่ `created_at`
+- **หน้า Dashboard คือรายรับล้วน ห้ามเอาต้นทุน/ค่าใช้จ่ายไปหักที่นั่น** — การหักเกิดที่หน้ากำไรที่เดียว (`กำไร = ยอดขาย − ต้นทุนวัตถุดิบ − ค่าใช้จ่ายประจำ`)
 
 ## Folder Structure
 ```
@@ -81,7 +94,7 @@ coffee_shop/
 │   ├── db.js
 │   ├── schema.sql          # schema + seed data (จาก Menu.md)
 │   ├── uploads/menu/       # ไฟล์รูปเมนู (ไม่ commit เข้า repo, gitignore)
-│   ├── routes/             # auth, menu, orders, reports
+│   ├── routes/             # auth, menu, addons, orders, reports, purchases, expenses
 │   └── middleware/auth.js  # JWT verify + role check (admin)
 └── frontend/
     └── src/
@@ -90,7 +103,11 @@ coffee_shop/
         │   ├── AdminLogin.jsx   # /admin (ทางลับ)
         │   ├── MenuManage.jsx   # admin — จัดการเมนู + อัปโหลดรูป
         │   ├── Orders.jsx       # admin — บอร์ดครัว
-        │   └── Dashboard.jsx    # admin — ยอดขาย
+        │   ├── Dashboard.jsx    # admin — ยอดขาย
+        │   ├── Costs.jsx        # admin — ต้นทุน (ห่อ 2 แท็บด้านล่าง)
+        │   ├── Purchases.jsx    # admin — แท็บวัตถุดิบ
+        │   ├── Expenses.jsx     # admin — แท็บค่าใช้จ่ายประจำ
+        │   └── Profit.jsx       # admin — กำไร
         ├── components/
         └── context/AuthContext.jsx
 ```

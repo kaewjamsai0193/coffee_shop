@@ -64,4 +64,10 @@ export const api = {
   createPurchase: (body) => request('/purchases', { method: 'POST', body, auth: true }),
   getPurchases: (period, date) => request(`/purchases?period=${period}&date=${date}`, { auth: true }),
   voidPurchase: (id) => request(`/purchases/${id}/void`, { method: 'PATCH', auth: true }),
+
+  // ค่าใช้จ่ายประจำ (ค่าน้ำ ค่าไฟ ค่าเช่า ฯลฯ)
+  getExpenseKinds: () => request('/expenses/kinds', { auth: true }),
+  createExpense: (body) => request('/expenses', { method: 'POST', body, auth: true }),
+  getExpenses: (period, date) => request(`/expenses?period=${period}&date=${date}`, { auth: true }),
+  voidExpense: (id) => request(`/expenses/${id}/void`, { method: 'PATCH', auth: true }),
 };

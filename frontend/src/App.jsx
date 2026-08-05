@@ -9,7 +9,7 @@ import AdminLogin from './pages/AdminLogin.jsx';
 import MenuManage from './pages/MenuManage.jsx';
 import Orders from './pages/Orders.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import Purchases from './pages/Purchases.jsx';
+import Costs from './pages/Costs.jsx';
 import Profit from './pages/Profit.jsx';
 
 // guard: ไม่มี token → เด้งไปหน้า login admin
@@ -42,7 +42,9 @@ const App = () => (
         <Route path="/admin/orders" element={<Orders />} />
         <Route path="/admin/menu" element={<MenuManage />} />
         <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/purchases" element={<Purchases />} />
+        <Route path="/admin/costs" element={<Costs />} />
+        {/* ที่อยู่เดิมของหน้าซื้อวัตถุดิบ — ตอนนี้เป็นแท็บหนึ่งในหน้าต้นทุน กัน bookmark เก่าเสีย */}
+        <Route path="/admin/purchases" element={<Navigate to="/admin/costs" replace />} />
         <Route path="/admin/profit" element={<Profit />} />
       </Route>
 

@@ -103,6 +103,23 @@ const Profit = () => {
             {data ? `− ${baht(data.cost)}` : '—'}
           </span>
         </div>
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-ink">
+              ค่าใช้จ่ายประจำ{mode === 'day' ? ' (เฉลี่ยต่อวัน)' : ''}
+            </span>
+            <span className="font-bold tabular-nums text-coral">
+              {data ? `− ${baht(data.expenses)}` : '—'}
+            </span>
+          </div>
+          {/* แยกตามประเภทเป็นบรรทัดละรายการขึ้นต้นด้วย "-" ตามรูปแบบเดียวกับ add-on ในหน้าออเดอร์ */}
+          {data?.expenseBreakdown?.map((e) => (
+            <div key={e.kind} className="mt-1 flex items-center justify-between text-xs text-muted">
+              <span>- {e.kind}</span>
+              <span className="tabular-nums">{baht(e.total)}</span>
+            </div>
+          ))}
+        </div>
         <div className="flex items-center justify-between bg-surface px-4 py-3">
           <span className="text-sm font-medium text-ink">{loss ? 'ขาดทุน' : 'กำไร'}</span>
           <span className={`text-lg font-bold tabular-nums ${loss ? 'text-coral' : 'text-ink'}`}>
@@ -112,8 +129,15 @@ const Profit = () => {
       </div>
 
       <p className="mt-3 text-xs text-muted">
-        ต้นทุนนับจากวันที่ซื้อวัตถุดิบ ไม่ใช่วันที่ใช้จริง — ถ้าซื้อของล็อตใหญ่วันเดียว
+        ต้นทุนวัตถุดิบนับจากวันที่ซื้อ ไม่ใช่วันที่ใช้จริง — ถ้าซื้อของล็อตใหญ่วันเดียว
         กำไรของวันนั้นจะดูต่ำผิดปกติ ให้ดูภาพรวมรายเดือนหรือรายปีประกอบด้วย
+      </p>
+      <p className="mt-2 text-xs text-muted">
+        ค่าใช้จ่ายประจำ (ค่าน้ำ ค่าไฟ ฯลฯ) ผูกกับเดือนของบิล{' '}
+        {mode === 'day'
+          ? 'หน้ารายวันจึงหักเป็นค่าเฉลี่ยต่อวัน (ยอดบิลของเดือนนั้น ÷ จำนวนวันในเดือน) ทุกวันในเดือนจึงหักเท่ากัน'
+          : 'ตัวเลขในช่วงนี้จึงเป็นยอดบิลจริง ไม่ได้เฉลี่ย'}{' '}
+        แก้ไขบิลได้ที่หน้า <span className="text-ink">ต้นทุน → ค่าใช้จ่ายประจำ</span>
       </p>
     </div>
   );

@@ -10,6 +10,7 @@ import addonRoutes from './routes/addons.js';
 import orderRoutes from './routes/orders.js';
 import reportRoutes from './routes/reports.js';
 import purchaseRoutes from './routes/purchases.js';
+import expenseRoutes from './routes/expenses.js';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/addons', addonRoutes);
 app.use('/orders', orderRoutes);
 app.use('/reports', reportRoutes);
 app.use('/purchases', purchaseRoutes);
+app.use('/expenses', expenseRoutes);
 
 // error handler กลาง (คืน JSON ภาษาไทย)
 // 500 = error ที่ไม่ได้ตั้งใจ (เช่นจาก DB) — log ไว้ฝั่ง server พอ ไม่ส่งรายละเอียดภายในออกไป

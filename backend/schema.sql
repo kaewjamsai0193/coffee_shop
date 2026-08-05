@@ -1,6 +1,7 @@
 -- Coffee POS — schema + seed data
 -- รัน: createdb coffee_pos && psql -d coffee_pos -f backend/schema.sql
 
+DROP TABLE IF EXISTS expenses CASCADE;
 DROP TABLE IF EXISTS ingredient_purchases CASCADE;
 DROP TABLE IF EXISTS ingredients CASCADE;
 DROP TABLE IF EXISTS order_items CASCADE;
@@ -86,12 +87,28 @@ CREATE TABLE ingredient_purchases (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- ค่าใช้จ่ายประจำ (ค่าน้ำ ค่าไฟ ค่าเช่า ฯลฯ) — เก็บเป็น "บิลของเดือนไหน" ไม่ใช่วันที่จ่ายจริง
+-- บิลมาเดือนละครั้งแต่ค่าใช้จ่ายเกิดตลอดเดือน ถ้าผูกกับวันที่จ่ายกำไรของวันนั้นจะดิ่งผิดความจริง
+-- period_month = วันที่ 1 ของเดือนที่บิลครอบคลุม · หน้ากำไรรายวันเฉลี่ยเอง (ยอด ÷ จำนวนวันในเดือน)
+-- ห้ามลบทิ้ง ใช้ voided_at เหมือน ingredient_purchases
+CREATE TABLE expenses (
+  id           SERIAL PRIMARY KEY,
+  kind         TEXT NOT NULL,              -- ชื่อประเภทอิสระ (ค่าไฟ/ค่าน้ำ/...) เติมคลังตัวเลือกจากที่เคยบันทึก
+  note         TEXT,
+  total        NUMERIC(10,2) NOT NULL CHECK (total >= 0),
+  period_month DATE NOT NULL,
+  voided_at    TIMESTAMPTZ,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE INDEX idx_menu_item_addons_addon_id ON menu_item_addons(addon_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_completed_at ON orders(completed_at);
 CREATE INDEX idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX idx_purchases_purchased_at ON ingredient_purchases(purchased_at);
 CREATE INDEX idx_purchases_voided_at ON ingredient_purchases(voided_at);
+CREATE INDEX idx_expenses_period_month ON expenses(period_month);
+CREATE INDEX idx_expenses_voided_at ON expenses(voided_at);
 
 -- code ออเดอร์แบบ ORD-00000123 (คำนวณจาก id ตอน query ในฝั่ง backend)
 
