@@ -79,6 +79,15 @@
 - ห้ามลบบิลทิ้ง ใช้ `voided_at` (`PATCH /expenses/:id/void`) เหมือน `ingredient_purchases`
 - `/admin/purchases` เดิม redirect ไป `/admin/costs` แล้ว
 
+## Touch / iPad (เครื่องหน้าร้านเป็น iPad — ห้ามรื้อโดยไม่ถาม)
+- แถบเมนู admin เป็น `sticky top-0 z-30` — ตะกร้าในหน้าสั่งสินค้าตอนฝังในแอดมิน (`embedded`) ต้องใช้ `lg:top-[4.5rem]` ให้พ้นแถบ ไม่งั้นมุดเข้าไปข้างใต้
+- `ScrollToTop` ใน `App.jsx` เลื่อนขึ้นบนสุดทุกครั้งที่เปลี่ยน route (react-router ไม่ทำให้) ไม่งั้นเปลี่ยนหน้าแล้วค้างกลางหน้าเหมือนแถบเมนูหาย
+- popup ทุกตัวต้องเรียก `useBodyScrollLock()` — ถ้าไม่ล็อก พื้นหลังจะเลื่อนใต้ overlay บน Safari แล้วจุดที่แตะกับที่เห็นไม่ตรงกัน
+- overlay ใช้ `flex overflow-y-auto` + `m-auto` ที่การ์ด (ห้ามใช้ `items-center`) — จอเตี้ย/คีย์บอร์ดเด้งแล้วยังเลื่อนดูได้ครบ ไม่โดนตัดหัวจนกดปุ่มไม่ได้
+- ปุ่มที่นิ้วต้องแตะให้สูง ≥ ~36px (`py-2.5` / `h-9`) — ปุ่มเล็กกว่านั้นบน iPad กดพลาดง่าย
+- `index.css` คุมพฤติกรรมสัมผัสระดับ global: `touch-action: manipulation` (กัน double-tap zoom ตอนกดรัว), ปิด tap highlight, และบังคับช่องกรอกเป็น 16px บน `pointer: coarse` (ถ้าเล็กกว่านี้ iOS จะซูมหน้าจอเองตอนโฟกัสแล้วไม่ซูมกลับ) — **ห้ามลด font-size ของ input ต่ำกว่า 16px บนอุปกรณ์สัมผัส**
+- `hoverOnlyWhenSupported` เปิดใน `tailwind.config.js` กัน `hover:` ค้างบนปุ่มที่เพิ่งแตะ
+
 ## Business Rules
 - ห้ามลบออเดอร์ทิ้ง ใช้สถานะ `cancelled` แทน — admin กด "ยกเลิก" ในหน้า Orders ได้ (`PATCH /orders/:id/cancel`), ออเดอร์ที่ยกเลิกไม่นับเป็นยอดขาย
 - ทุก action ที่มีผล (เลือกเมนู, ยืนยันสั่ง, เสร็จแล้ว, ยกเลิก) ต้องมี popup ยืนยันก่อน — ใช้ `useConfirm()` จาก `components/Confirm.jsx`
@@ -109,6 +118,7 @@ coffee_shop/
         │   ├── Expenses.jsx     # admin — แท็บค่าใช้จ่ายประจำ
         │   └── Profit.jsx       # admin — กำไร
         ├── components/
+        ├── hooks/useBodyScrollLock.js  # ล็อกพื้นหลังตอนเปิด popup (ดู §Touch/iPad)
         └── context/AuthContext.jsx
 ```
 

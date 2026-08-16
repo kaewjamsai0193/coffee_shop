@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { useToast } from '../components/Toast.jsx';
 import { useConfirm } from '../components/Confirm.jsx';
 import MenuImage from '../components/MenuImage.jsx';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js';
 
 const CATEGORIES = ['กาแฟสด', 'เย็น', 'ปั่น', 'แอลกอฮอล์', 'อื่นๆ'];
 const baht = (n) => Number(n).toFixed(2) + ' ฿';
@@ -23,6 +24,8 @@ const AddonLibrary = ({ onClose, onChanged }) => {
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useBodyScrollLock(true); // modal เปิดอยู่ตลอดอายุ component นี้
 
   // แต่ละ action มีผลทันที (ไม่รอกดบันทึกรวม) — เมนูหลายอันอ้างถึง id เดิม จึงแก้ทีละรายการ
   const load = () => api.getAddons().then(setAddons).catch((e) => show(e.message, 'error'));
@@ -95,8 +98,9 @@ const AddonLibrary = ({ onClose, onChanged }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4">
-      <div className="card w-full max-w-2xl p-6">
+    <div className="fixed inset-0 z-40 flex overflow-y-auto overscroll-contain bg-ink/40 p-4">
+      {/* m-auto (ไม่ใช่ items-center): จอเตี้ย/คีย์บอร์ดเด้ง แล้ว modal สูงเกิน จะเลื่อนดูได้ครบ ไม่โดนตัดหัว */}
+      <div className="card m-auto w-full max-w-2xl p-6">
         <div className="mb-1 flex items-baseline justify-between">
           <h2 className="text-lg font-bold text-ink">คลัง Add-on</h2>
           <span className="text-xs text-muted">{addons.length} รายการ</span>
@@ -224,6 +228,8 @@ const MenuForm = ({ initial, library, onClose, onSaved }) => {
   // เมนูนี้เปิดใช้ add-on ตัวไหนบ้าง — ติ๊กในฟอร์ม ยังไม่มีผลจนกดบันทึก
   const [addonIds, setAddonIds] = useState(() => (initial?.addons || []).map((a) => a.id));
 
+  useBodyScrollLock(true); // modal เปิดอยู่ตลอดอายุ component นี้
+
   const onPick = (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -261,8 +267,9 @@ const MenuForm = ({ initial, library, onClose, onSaved }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 px-4">
-      <form onSubmit={submit} className="card w-full max-w-md p-6">
+    <div className="fixed inset-0 z-40 flex overflow-y-auto overscroll-contain bg-ink/40 p-4">
+      {/* m-auto (ไม่ใช่ items-center): ฟอร์มนี้สูง พอจอเตี้ย/คีย์บอร์ดเด้งจะเลื่อนดูได้ครบ ไม่โดนตัดหัว */}
+      <form onSubmit={submit} className="card m-auto w-full max-w-md p-6">
         <h2 className="mb-4 text-lg font-bold text-ink">{editing ? 'แก้ไขเมนู' : 'เพิ่มเมนูใหม่'}</h2>
 
         <div className="mb-4 flex gap-4">
@@ -427,13 +434,13 @@ const MenuManage = () => {
             <div className="mt-2 flex gap-1.5">
               <button
                 onClick={() => setEditing(item)}
-                className="flex-1 rounded-md border border-line py-1 text-xs text-ink transition-colors hover:bg-surface"
+                className="flex-1 rounded-md border border-line py-2 text-xs text-ink transition-colors hover:bg-surface"
               >
                 แก้ไข
               </button>
               <button
                 onClick={() => toggleAvailable(item)}
-                className={`flex-1 rounded-md py-1 text-xs ${
+                className={`flex-1 rounded-md py-2 text-xs ${
                   item.is_available ? 'bg-coral/10 text-coral' : 'bg-matcha/10 text-matcha'
                 }`}
               >

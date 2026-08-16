@@ -21,6 +21,35 @@ body {
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
+/* --- จอสัมผัส / iPad --- */
+
+/* กดรัว ๆ แบบเครื่อง POS แล้ว Safari ตีความเป็น double-tap zoom → หน้าซูมค้าง
+   ทำให้ตำแหน่งปุ่มเลื่อนไปจากที่ตาเห็น (กดไม่ตรง) — ตัด gesture นี้ทิ้ง */
+button,
+a,
+label,
+input,
+select,
+textarea,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+/* กล่องสีเทาที่ iOS แปะทับตอนแตะ */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS ซูมหน้าจออัตโนมัติเมื่อโฟกัสช่องกรอกที่ font-size < 16px แล้วไม่ซูมกลับ
+   → ทั้งหน้าเลื่อน/ค้างเพี้ยนหลังพิมพ์ บังคับ 16px เฉพาะอุปกรณ์สัมผัส */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @layer components {
   /* Signature card (Design.md §3) — ขอบบาง ไม่มีเงา มุม 12px */
   .card {

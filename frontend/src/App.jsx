@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
 import { PendingProvider } from './context/PendingContext.jsx';
 import { ToastProvider } from './components/Toast.jsx';
@@ -11,6 +12,16 @@ import Orders from './pages/Orders.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Costs from './pages/Costs.jsx';
 import Profit from './pages/Profit.jsx';
+
+// react-router ไม่รีเซ็ต scroll ให้เอง — ถ้าเลื่อนหน้ายาว ๆ อยู่แล้วกดเปลี่ยนหน้า
+// หน้าใหม่จะเปิดมาค้างกลางหน้า (navbar หลุดขึ้นไปข้างบน) ต้องเลื่อนกลับขึ้นสุดเอง
+const ScrollToTop = () => {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+};
 
 // guard: ไม่มี token → เด้งไปหน้า login admin
 const ProtectedLayout = () => {
@@ -29,6 +40,7 @@ const ProtectedLayout = () => {
 const App = () => (
   <ToastProvider>
     <ConfirmProvider>
+    <ScrollToTop />
     <Routes>
       {/* public — หน้าสั่งสินค้า */}
       <Route path="/" element={<Order />} />

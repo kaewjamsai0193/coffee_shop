@@ -29,8 +29,9 @@ const Navbar = () => {
     { to: '/admin/profit', label: 'กำไร' },
   ];
 
+  // py-2.5 = สูง ~40px ให้นิ้วแตะบน iPad ได้เต็ม ๆ (ของเดิม ~32px เล็กเกินไป)
   const linkClass = ({ isActive }) =>
-    `px-3 py-1.5 rounded-lg text-sm transition-colors ${
+    `px-3 py-2.5 rounded-lg text-sm transition-colors ${
       isActive ? 'bg-surface font-semibold text-ink' : 'font-medium text-muted hover:text-ink'
     }`;
 
@@ -58,16 +59,17 @@ const Navbar = () => {
       onClick={handleLogout}
       aria-label="ออกจากระบบ"
       title="ออกจากระบบ"
-      className={`rounded-lg p-1.5 text-muted transition-colors hover:bg-surface hover:text-coral ${extra}`}
+      className={`rounded-lg p-2.5 text-muted transition-colors hover:bg-surface hover:text-coral ${extra}`}
     >
       <IconLogout />
     </button>
   );
 
   return (
-    <header className="border-b border-line bg-paper">
+    // sticky: บน iPad หน้ายาว ๆ (เมนู/ยอดขาย) แถบเมนูจะติดอยู่บนสุดเสมอ ไม่ต้องเลื่อนขึ้นไปหา
+    <header className="sticky top-0 z-30 border-b border-line bg-paper">
       <nav className="mx-auto max-w-6xl px-4">
-        <div className="flex items-center gap-2 py-3">
+        <div className="flex items-center gap-2 py-2">
           <span className="mr-2 font-bold text-ink">Coffee POS</span>
 
           {/* จอใหญ่: ลิงก์เป็นแถว */}
@@ -78,7 +80,7 @@ const Navbar = () => {
           <button
             onClick={() => setOpen((o) => !o)}
             aria-label="เปิด/ปิดเมนู"
-            className="relative ml-auto rounded-lg p-1.5 text-2xl leading-none text-ink md:hidden"
+            className="relative ml-auto rounded-lg p-2.5 text-2xl leading-none text-ink md:hidden"
           >
             {open ? '✕' : '☰'}
             {!open && pending > 0 && (

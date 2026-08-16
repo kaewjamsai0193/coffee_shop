@@ -2,6 +2,8 @@
 // color token + typography จาก Design.md (§1–2) — ห้ามใช้สีนอกเหนือจากนี้
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  // จอสัมผัส (iPad) ไม่มี hover จริง — กันสถานะ hover ค้างบนปุ่มที่เพิ่งแตะ
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {

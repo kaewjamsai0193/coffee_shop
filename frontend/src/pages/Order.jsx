@@ -4,6 +4,7 @@ import { useToast } from '../components/Toast.jsx';
 import { usePending } from '../context/PendingContext.jsx';
 import { useConfirm } from '../components/Confirm.jsx';
 import MenuImage from '../components/MenuImage.jsx';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock.js';
 
 const SHOP_NAME = 'Coffee POS';
 const ALL = 'ทั้งหมด';
@@ -39,6 +40,8 @@ const Order = ({ embedded = false }) => {
   const [pickQty, setPickQty] = useState(1);
   const [pickAddons, setPickAddons] = useState([]); // id ของ add-on ที่ติ๊กใน popup
   const [clock, setClock] = useState(() => new Date());
+
+  useBodyScrollLock(!!picking);
 
   useEffect(() => {
     api.getMenu().then(setMenu).catch((e) => show(e.message, 'error'));
@@ -293,7 +296,12 @@ const Order = ({ embedded = false }) => {
         </section>
 
         {/* ขวา: ตะกร้า — เริ่มแถวเดียวกับการ์ดเมนู */}
-        <aside className="lg:sticky lg:top-4 lg:col-start-2 lg:row-start-2 lg:self-start">
+        {/* ในหน้า admin ต้องเว้นให้พ้นแถบเมนูที่ sticky อยู่บนสุด ไม่งั้นตะกร้าจะมุดเข้าไปใต้แถบ */}
+        <aside
+          className={`lg:sticky lg:col-start-2 lg:row-start-2 lg:self-start ${
+            embedded ? 'lg:top-[4.5rem]' : 'lg:top-4'
+          }`}
+        >
           <div className="card flex flex-col">
             <div className="flex items-center justify-between border-b border-line px-4 py-3">
               <h2 className="font-bold text-ink">รายการสั่ง</h2>
@@ -319,7 +327,7 @@ const Order = ({ embedded = false }) => {
                         <button
                           onClick={() => removeLine(l.key)}
                           aria-label={`ลบ ${l.item.name}`}
-                          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-coral text-paper transition-transform duration-100 active:scale-90"
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-coral text-paper transition-transform duration-100 active:scale-90"
                         >
                           <IconTrash />
                         </button>
@@ -337,14 +345,14 @@ const Order = ({ embedded = false }) => {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => changeQty(l.key, -1)}
-                            className="h-7 w-7 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
+                            className="h-9 w-9 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
                           >
                             −
                           </button>
                           <span className="w-7 text-center text-sm tabular-nums text-ink">{l.qty}</span>
                           <button
                             onClick={() => changeQty(l.key, 1)}
-                            className="h-7 w-7 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
+                            className="h-9 w-9 rounded-md border border-line text-ink transition-transform duration-100 active:scale-90"
                           >
                             +
                           </button>
@@ -376,10 +384,11 @@ const Order = ({ embedded = false }) => {
       {/* popup เลือกจำนวน + โชว์รูป ก่อนเพิ่มลงตะกร้า */}
       {picking && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
+          className="fixed inset-0 z-50 flex overflow-y-auto overscroll-contain bg-ink/40 p-4"
           onClick={() => setPicking(null)}
         >
-          <div className="card w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
+          {/* m-auto (ไม่ใช่ items-center): จอเตี้ยแล้ว popup สูงเกิน จะเลื่อนดูได้ครบ ไม่โดนตัดหัว */}
+          <div className="card m-auto w-full max-w-xs p-5" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto w-40">
               <MenuImage imageUrl={picking.image_url} category={picking.category} />
             </div>
