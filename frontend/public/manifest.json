@@ -1,0 +1,15 @@
+{
+  "name": "Coffee POS",
+  "short_name": "Coffee POS",
+  "description": "ระบบ POS ร้านกาแฟ — สั่งสินค้าและจัดการร้าน",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F1F1F2",
+  "theme_color": "#FFFFFF",
+  "lang": "th",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
