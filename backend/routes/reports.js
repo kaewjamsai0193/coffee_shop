@@ -95,6 +95,7 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
           // to_char ไม่ใช่ ::date เพราะ pg แปลง date เป็น Date ของ JS แล้ว JSON.stringify ทำให้เลื่อนวันตาม timezone
           `SELECT to_char(date_trunc('${bucket}', o.completed_at), 'YYYY-MM-DD') AS bucket,
                   COUNT(DISTINCT o.id)::int AS count,
+                  SUM(oi.qty)::int AS cups,
                   SUM((oi.price + oi.addons_total) * oi.qty) AS total
            FROM orders o
            JOIN order_items oi ON oi.order_id = o.id
@@ -131,9 +132,12 @@ router.get('/sales', requireAdmin, async (req, res, next) => {
       date: ref,
       total: orders.reduce((s, o) => s + o.total, 0),
       count: orders.length,
+      cups: bd.rows.reduce((s, r) => s + r.qty, 0), // จำนวนแก้วรวม (1 บิลมีได้หลายแก้ว)
       breakdown: bd.rows.map((r) => ({ name: r.name, qty: r.qty, total: Number(r.total) })),
       trendBucket: bucket, // 'day' (ในหน้ารายเดือน) | 'month' (ในหน้ารายปี) | null
-      trend: trend ? trend.rows.map((r) => ({ date: r.bucket, count: r.count, total: Number(r.total) })) : [],
+      trend: trend
+        ? trend.rows.map((r) => ({ date: r.bucket, count: r.count, cups: r.cups, total: Number(r.total) }))
+        : [],
       orders,
     });
   } catch (err) {

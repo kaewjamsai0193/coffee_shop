@@ -138,10 +138,14 @@ const Dashboard = () => {
           {delta?.kind === 'new' && <span className="text-muted">ช่วงก่อนหน้าไม่มียอดขายให้เทียบ</span>}
         </div>
 
-        <div className="mt-4 flex gap-8 border-t border-line pt-4">
+        <div className="mt-4 flex flex-wrap gap-8 border-t border-line pt-4">
           <div>
             <div className="text-xs text-muted">จำนวนออเดอร์</div>
             <div className="text-lg tabular-nums text-ink">{data ? data.count : '—'}</div>
+          </div>
+          <div>
+            <div className="text-xs text-muted">จำนวนแก้ว</div>
+            <div className="text-lg tabular-nums text-ink">{data ? data.cups : '—'}</div>
           </div>
           <div>
             <div className="text-xs text-muted">เฉลี่ยต่อออเดอร์</div>
@@ -171,7 +175,10 @@ const Dashboard = () => {
                     <span className="flex-1 truncate tabular-nums text-ink">
                       {trendLabelOf(trendBucket, t.date)}
                     </span>
-                    <span className="w-20 shrink-0 text-right tabular-nums text-muted">{t.count} บิล</span>
+                    <span className="w-32 shrink-0 text-right text-base tabular-nums text-ink">
+                      {t.count} <span className="text-xs text-muted">บิล</span> · {t.cups}{' '}
+                      <span className="text-xs text-muted">แก้ว</span>
+                    </span>
                     <span className="w-28 shrink-0 text-right font-semibold tabular-nums text-ink">
                       {baht(t.total)}
                     </span>
