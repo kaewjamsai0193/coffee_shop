@@ -138,18 +138,23 @@ const Dashboard = () => {
           {delta?.kind === 'new' && <span className="text-muted">ช่วงก่อนหน้าไม่มียอดขายให้เทียบ</span>}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-8 border-t border-line pt-4">
-          <div>
-            <div className="text-xs text-muted">จำนวนออเดอร์</div>
-            <div className="text-lg tabular-nums text-ink">{data ? data.count : '—'}</div>
+        {/* จำนวนบิล/จำนวนแก้ว เป็นตัวเลขที่ดูบ่อยที่สุดรองจากยอดเงิน จึงทำเป็นบล็อกตัวใหญ่ */}
+        <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4 sm:grid-cols-3">
+          <div className="rounded-xl border-2 border-line bg-surface p-3">
+            <div className="text-sm text-muted">จำนวนออเดอร์</div>
+            <div className="mt-0.5 text-3xl font-bold tabular-nums text-ink">
+              {data ? data.count : '—'} <span className="text-base font-normal text-muted">บิล</span>
+            </div>
           </div>
-          <div>
-            <div className="text-xs text-muted">จำนวนแก้ว</div>
-            <div className="text-lg tabular-nums text-ink">{data ? data.cups : '—'}</div>
+          <div className="rounded-xl border-2 border-line bg-surface p-3">
+            <div className="text-sm text-muted">จำนวนแก้ว</div>
+            <div className="mt-0.5 text-3xl font-bold tabular-nums text-ink">
+              {data ? data.cups : '—'} <span className="text-base font-normal text-muted">แก้ว</span>
+            </div>
           </div>
-          <div>
-            <div className="text-xs text-muted">เฉลี่ยต่อออเดอร์</div>
-            <div className="text-lg tabular-nums text-ink">{data ? baht(avg) : '—'}</div>
+          <div className="col-span-2 rounded-xl border-2 border-line bg-surface p-3 sm:col-span-1">
+            <div className="text-sm text-muted">เฉลี่ยต่อออเดอร์</div>
+            <div className="mt-0.5 text-xl font-bold tabular-nums text-ink">{data ? baht(avg) : '—'}</div>
           </div>
         </div>
       </div>
