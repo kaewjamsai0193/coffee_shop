@@ -77,7 +77,7 @@ const Dashboard = () => {
     return { kind: pct >= 0 ? 'up' : 'down', pct: Math.abs(pct), before: prev.total };
   }, [data, prev]);
 
-  const avg = data && data.count > 0 ? data.total / data.count : 0;
+  const avg = data && data.cups > 0 ? data.total / data.cups : 0;
   const maxMenuTotal = data?.breakdown?.[0]?.total || 0; // breakdown เรียงจากมากไปน้อยมาแล้ว
   const menuRows = data ? (showAllMenu ? data.breakdown : data.breakdown.slice(0, MENU_PREVIEW)) : [];
   const orderRows = data ? (showAllOrders ? data.orders : data.orders.slice(0, ORDERS_PREVIEW)) : [];
@@ -153,7 +153,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="col-span-2 rounded-xl border-2 border-line bg-surface p-3 sm:col-span-1">
-            <div className="text-sm text-muted">เฉลี่ยต่อออเดอร์</div>
+            <div className="text-sm text-muted">เฉลี่ยต่อแก้ว</div>
             <div className="mt-0.5 text-xl font-bold tabular-nums text-ink">{data ? baht(avg) : '—'}</div>
           </div>
         </div>
