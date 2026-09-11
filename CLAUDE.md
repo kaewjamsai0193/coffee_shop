@@ -17,7 +17,7 @@
 ## Commands
 ### แนะนำ: Docker (ครบทั้ง stack — db + backend + frontend)
 - รันทั้งหมด: `docker compose up -d --build`
-- เปิดใช้งาน: **หน้าสั่งสินค้า** http://localhost:8080 · **admin** http://localhost:8080/admin
+- เปิดใช้งาน: **หน้าสั่งสินค้า** http://localhost · **admin** http://localhost/admin
 - admin ตั้งต้น: `admin` / `admin1234` (แก้ได้ที่ env `ADMIN_USERNAME`/`ADMIN_PASSWORD` ใน `docker-compose.yml`)
 - db + seed (34 เมนู) โหลดอัตโนมัติจาก `backend/schema.sql`, admin ถูกสร้างอัตโนมัติตอน backend สตาร์ท
 - ดู log: `docker compose logs -f backend` · ปิด: `docker compose down` (ลบข้อมูลด้วย: `docker compose down -v`)

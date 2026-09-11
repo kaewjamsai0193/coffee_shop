@@ -30,7 +30,7 @@ services:
       JWT_EXPIRES_IN: 12h
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: admin1234
-      CLIENT_ORIGIN: http://localhost:8080
+      CLIENT_ORIGIN: http://localhost
       TZ: Asia/Bangkok
     # ไม่เปิดพอร์ต 4000 ออก host — frontend (nginx) proxy ให้ผ่าน /api อยู่แล้ว
     volumes:
@@ -41,7 +41,7 @@ services:
     depends_on:
       - backend
     ports:
-      - "8080:80"
+      - "80:80"
 
 volumes:
   db_data:

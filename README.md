@@ -13,8 +13,8 @@
 ```bash
 docker compose up -d --build
 ```
-- หน้าร้าน: http://localhost:8080
-- admin: http://localhost:8080/admin  (ค่าเริ่มต้น `admin` / `admin1234`)
+- หน้าร้าน: http://localhost
+- admin: http://localhost/admin  (ค่าเริ่มต้น `admin` / `admin1234`)
 
 DB + seed เมนู 34 รายการ และ admin ถูกสร้างให้อัตโนมัติ
 
