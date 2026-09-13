@@ -49,7 +49,7 @@ export const expenseBreakdown = async (period, ref) => {
 // GET /expenses/kinds — admin — ประเภทที่เคยบันทึก (ไว้เป็นตัวเลือกในช่องประเภท)
 router.get('/kinds', requireAdmin, async (req, res, next) => {
   try {
-    const { rows } = await query('SELECT DISTINCT kind FROM expenses ORDER BY kind');
+    const { rows } = await query('SELECT DISTINCT kind FROM expenses WHERE voided_at IS NULL ORDER BY kind');
     res.json(rows.map((r) => r.kind));
   } catch (err) {
     next(err);

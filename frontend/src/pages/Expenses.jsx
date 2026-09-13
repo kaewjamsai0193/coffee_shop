@@ -35,7 +35,9 @@ const IconTrash = () => (
 );
 
 let rowSeq = 0;
-const blankRow = () => ({ key: ++rowSeq, kind: '', note: '', total: '' });
+const blankRow = () => ({ key: ++rowSeq, kind: '', note: '', total: '', custom: false });
+
+const CUSTOM = '__custom__'; // ค่า sentinel ใน dropdown = เลือก "พิมพ์ประเภทเอง"
 
 const Expenses = () => {
   const { show } = useToast();
@@ -69,8 +71,8 @@ const Expenses = () => {
     loadData();
   }, [loadData]);
 
-  const setField = (key, field, value) =>
-    setRows((rs) => rs.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
+  const setRow = (key, patch) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
+  const setField = (key, field, value) => setRow(key, { [field]: value });
 
   const addRow = () => setRows((rs) => [...rs, blankRow()]);
   const removeRow = (key) => setRows((rs) => (rs.length === 1 ? [blankRow()] : rs.filter((r) => r.key !== key)));
@@ -186,14 +188,37 @@ const Expenses = () => {
 
         <div className="space-y-2">
           {rows.map((r) => (
-            <div key={r.key} className="grid gap-2 sm:grid-cols-[1fr_1fr_8rem_2.25rem]">
-              <input
-                list="expense-kinds"
-                value={r.kind}
-                onChange={(e) => setField(r.key, 'kind', e.target.value)}
-                placeholder="เลือกหรือพิมพ์ประเภทใหม่"
-                className={fieldClass}
-              />
+            <div key={r.key} className="grid items-start gap-2 sm:grid-cols-[1fr_1fr_8rem_2.25rem]">
+              <div className="space-y-1">
+                <select
+                  value={r.custom ? CUSTOM : r.kind}
+                  onChange={(e) =>
+                    e.target.value === CUSTOM
+                      ? setRow(r.key, { custom: true, kind: '' })
+                      : setRow(r.key, { custom: false, kind: e.target.value })
+                  }
+                  className={fieldClass}
+                >
+                  <option value="" disabled>
+                    เลือกประเภท
+                  </option>
+                  {kindOptions.map((k) => (
+                    <option key={k} value={k}>
+                      {k}
+                    </option>
+                  ))}
+                  <option value={CUSTOM}>+ ประเภทอื่น (พิมพ์เอง)</option>
+                </select>
+                {r.custom && (
+                  <input
+                    autoFocus
+                    value={r.kind}
+                    onChange={(e) => setField(r.key, 'kind', e.target.value)}
+                    placeholder="พิมพ์ชื่อประเภทใหม่"
+                    className={fieldClass}
+                  />
+                )}
+              </div>
               <input
                 value={r.note}
                 onChange={(e) => setField(r.key, 'note', e.target.value)}
@@ -221,12 +246,6 @@ const Expenses = () => {
             </div>
           ))}
         </div>
-
-        <datalist id="expense-kinds">
-          {kindOptions.map((k) => (
-            <option key={k} value={k} />
-          ))}
-        </datalist>
 
         <button
           type="button"
